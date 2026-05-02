@@ -195,7 +195,7 @@
 
   .slot-line {
     display: grid;
-    grid-template-columns: 84px 1fr 90px 50px;
+    grid-template-columns: 84px 1fr 90px 50px auto;
     gap: 8px;
     align-items: center;
     padding: 5px 8px;
@@ -231,18 +231,36 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .slot-line .info-btn {
-    flex-shrink: 0;
-    background: transparent;
+
+  /* Бейдж «программа →» — контрастная кликабельная кнопка */
+  .program-btn {
+    background: var(--ink);
+    color: var(--paper-warm);
     border: none;
-    padding: 0 2px;
+    border-radius: 12px;
+    padding: 4px 10px;
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
     cursor: pointer;
-    font-size: 13px;
-    line-height: 1;
-    color: rgba(42,42,40,0.55);
-    transition: color 0.15s, transform 0.15s;
+    white-space: nowrap;
+    transition: all 0.15s;
+    line-height: 1.2;
   }
-  .slot-line .info-btn:hover { color: var(--ink); transform: scale(1.15); }
+  .program-btn:hover {
+    background: var(--yellow-deep);
+    color: var(--ink);
+    transform: translateX(2px);
+  }
+  .program-btn .arrow {
+    display: inline-block;
+    margin-left: 2px;
+    transition: transform 0.15s;
+  }
+  .program-btn:hover .arrow {
+    transform: translateX(2px);
+  }
+
   .slot-line .cost-badge {
     background: var(--white);
     border: 1px solid var(--ink);
@@ -388,7 +406,18 @@
     .location-cell { border-right: none; border-bottom: 1px solid rgba(21,22,23,0.1); }
     .locations-row { display: none; }
     .mobile-loc-tabs { display: flex; }
-    .slot-line { grid-template-columns: 72px 1fr 60px 40px; font-size: 11px; }
+    .slot-line {
+      grid-template-columns: 72px 1fr 40px;
+      grid-template-areas: "time theme cost" "time teacher cost" "btn btn btn";
+      font-size: 11px;
+      gap: 2px 8px;
+      padding: 6px 8px;
+    }
+    .slot-line .time { grid-area: time; align-self: center; }
+    .slot-line .theme { grid-area: theme; white-space: normal; overflow: visible; text-overflow: clip; }
+    .slot-line .teacher { grid-area: teacher; font-size: 10px; opacity: 0.75; font-style: italic; }
+    .slot-line .cost-badge { grid-area: cost; align-self: center; }
+    .slot-line .program-btn { grid-area: btn; justify-self: stretch; text-align: center; padding: 7px; margin-top: 4px; }
 
     body.mobile-loc-0 .location-cell[data-loc-idx="1"],
     body.mobile-loc-0 .location-cell[data-loc-idx="2"] { display: none; }
@@ -589,12 +618,10 @@ function renderViewCell(week, wIdx, loc, lIdx) {
       html += `
         <div class="slot-line ${dirClass}">
           <span class="time">${escapeHtml(s.time || '')}</span>
-          <span class="theme-wrap">
-            <span class="theme">${escapeHtml(s.theme || '')}</span>
-            <button class="info-btn" onclick="showSlotDetails(${wIdx},${lIdx},${sIdx})" title="программа интенсива">ⓘ</button>
-          </span>
+          <span class="theme">${escapeHtml(s.theme || '')}</span>
           <span class="teacher">${escapeHtml(s.teacher || '')}</span>
           <span class="cost-badge">${escapeHtml(cost) || '—'}</span>
+          <button class="program-btn" onclick="showSlotDetails(${wIdx},${lIdx},${sIdx})">программа<span class="arrow">→</span></button>
         </div>
       `;
     });
