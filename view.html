@@ -1,0 +1,457 @@
+<!-- Просмотр сетки интенсивов «Прознание + Coddy» -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Интенсивы — расписание</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&family=Caveat:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #151617;
+    --paper: #F5F5F0;
+    --paper-warm: #FFFDF5;
+    --paper-deep: #ECECE5;
+    --yellow: #FED634;
+    --yellow-deep: #E8C200;
+    --green: #7ED957;
+    --green-deep: #5FB835;
+    --orange-soft: #FFE4B5;
+    --white: #FFFFFF;
+    --shadow: rgba(21,22,23,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Geologica, system-ui, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    padding: 24px;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 10% 5%, rgba(254,214,52,0.06) 0%, transparent 40%),
+      radial-gradient(circle at 90% 95%, rgba(65,190,234,0.05) 0%, transparent 40%);
+  }
+
+  .header {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 18px;
+    margin-bottom: 24px;
+    max-width: 1300px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .eyebrow {
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: rgba(21,22,23,0.55);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  h1 {
+    font-family: Geologica, sans-serif;
+    font-weight: 600;
+    font-size: 36px;
+    line-height: 1;
+  }
+  h1 em {
+    font-family: Caveat, cursive;
+    font-style: normal;
+    font-weight: 600;
+    background: var(--yellow);
+    padding: 0 8px;
+    border-radius: 4px;
+  }
+  .subtitle {
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    color: rgba(21,22,23,0.6);
+    margin-top: 8px;
+  }
+
+  .container {
+    max-width: 1300px;
+    margin: 0 auto;
+  }
+
+  .locations-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .location-name {
+    background: var(--yellow);
+    border: 1px solid var(--ink);
+    border-radius: 4px;
+    padding: 10px 14px;
+    text-align: center;
+    font-family: Geologica, sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+  }
+
+  .schedule {
+    background: var(--white);
+    border: 1px solid var(--ink);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px var(--shadow);
+  }
+
+  .month-header {
+    background: var(--orange-soft);
+    border-top: 2px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    padding: 8px 14px;
+    font-family: Geologica, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .month-header:first-child { border-top: none; }
+
+  .marker-header {
+    background: var(--paper-deep);
+    border-bottom: 1px solid var(--ink);
+    padding: 6px 14px;
+    font-family: Inter, sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    text-align: center;
+    color: rgba(21,22,23,0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .marker-header.empty { display: none; }
+
+  .week-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-bottom: 1px solid rgba(21,22,23,0.15);
+  }
+  .week-row:last-child { border-bottom: none; }
+
+  .location-cell {
+    border-right: 1px solid rgba(21,22,23,0.15);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 80px;
+  }
+  .location-cell:last-child { border-right: none; }
+  .location-cell.empty { background: rgba(0,0,0,0.02); }
+
+  .week-date {
+    font-family: Geologica, sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--green);
+    padding: 3px 8px;
+    border-radius: 3px;
+    display: inline-block;
+    width: fit-content;
+  }
+  .week-date.dim {
+    background: transparent;
+    color: rgba(21,22,23,0.3);
+  }
+
+  .multi-day-banner {
+    background: var(--orange-soft);
+    border: 1px solid #e0b056;
+    padding: 4px 10px;
+    border-radius: 3px;
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .slot-line {
+    display: grid;
+    grid-template-columns: 70px 1fr 90px 50px;
+    gap: 8px;
+    align-items: start;
+    padding: 5px 8px;
+    border-radius: 3px;
+    background: var(--green);
+    border: 1px solid var(--green-deep);
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+  }
+  .slot-line.empty { display: none; }
+  .slot-line .time { font-weight: 500; }
+  .slot-line .theme { font-weight: 500; cursor: pointer; }
+  .slot-line .theme:hover { text-decoration: underline; }
+  .slot-line .cost {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: rgba(21,22,23,0.7);
+  }
+
+  .empty-msg {
+    color: rgba(21,22,23,0.35);
+    font-style: italic;
+    font-size: 12px;
+  }
+
+  /* Модалка */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(21,22,23,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--white);
+    border: 1px solid var(--ink);
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 500px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  }
+  .modal h2 {
+    font-family: Geologica, sans-serif;
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+  .modal .meta {
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+    color: rgba(21,22,23,0.6);
+    margin-bottom: 14px;
+  }
+  .modal p {
+    font-family: Geologica, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: rgba(21,22,23,0.85);
+  }
+  .modal-close {
+    background: var(--yellow);
+    border: 1px solid var(--ink);
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 16px;
+  }
+
+  .footer {
+    max-width: 1300px;
+    margin: 24px auto 0;
+    padding-top: 16px;
+    border-top: 1px solid rgba(21,22,23,0.1);
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    color: rgba(21,22,23,0.5);
+    text-align: center;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 60px 20px;
+    color: rgba(21,22,23,0.5);
+  }
+  .loader {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(21,22,23,0.2);
+    border-top-color: var(--ink);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 900px) {
+    body { padding: 12px; }
+    .week-row { grid-template-columns: 1fr; }
+    .location-cell { border-right: none; border-bottom: 1px solid rgba(21,22,23,0.1); }
+    .locations-row { grid-template-columns: 1fr; }
+    .slot-line { grid-template-columns: 60px 1fr 70px 40px; font-size: 11px; }
+  }
+</style>
+
+<div class="container">
+  <div class="header">
+    <div class="eyebrow">Прознание + Coddy · интенсивы</div>
+    <h1 id="h-title">—</h1>
+    <div class="subtitle" id="h-subtitle"></div>
+  </div>
+
+  <div id="content">
+    <div class="loading"><span class="loader"></span> Загружаю расписание…</div>
+  </div>
+
+  <div class="footer">
+    <span id="footer-text">Прознание + Coddy</span>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+// URL Apps Script — должен совпадать с index.html
+const LIBRARY_URL = 'https://script.google.com/macros/s/REPLACE_WITH_YOUR_DEPLOYMENT_URL/exec';
+const PROJECT_TYPE = 'intensive';
+
+let state = null;
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function getId() {
+  const m = location.search.match(/[?&]id=([^&]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+async function loadPublication(id) {
+  const r = await fetch(LIBRARY_URL + '?action=getPublished&project=' + PROJECT_TYPE + '&id=' + encodeURIComponent(id) + '&_t=' + Date.now());
+  const data = await r.json();
+  if (!data.ok || !data.version) throw new Error(data.error || 'Публикация не найдена');
+  return JSON.parse(data.version.stateJson);
+}
+
+async function init() {
+  const id = getId();
+  if (!id) {
+    document.getElementById('content').innerHTML = `
+      <div class="loading">
+        <p style="font-size:16px;margin-bottom:8px">Не указан id публикации.</p>
+        <p style="font-size:13px;color:rgba(21,22,23,0.5)">Ссылка должна быть вида <code>view.html?id=...</code></p>
+      </div>`;
+    return;
+  }
+
+  try {
+    state = await loadPublication(id);
+    render();
+  } catch(e) {
+    document.getElementById('content').innerHTML = `
+      <div class="loading">
+        <p style="font-size:16px;margin-bottom:8px">⚠ Не удалось загрузить публикацию.</p>
+        <p style="font-size:13px;color:rgba(21,22,23,0.5)">${escapeHtml(e.message)}</p>
+      </div>`;
+  }
+}
+
+function render() {
+  document.getElementById('h-title').innerHTML = `<em>${escapeHtml(state.title || 'Интенсивы')}</em>`;
+  let sub = '';
+  if (state.ages) sub += state.ages;
+  document.getElementById('h-subtitle').textContent = sub;
+
+  let html = `<div class="locations-row">`;
+  state.locations.forEach(loc => {
+    html += `<div class="location-name">${escapeHtml(loc)}</div>`;
+  });
+  html += `</div>`;
+
+  html += `<div class="schedule">`;
+  let lastMonth = null;
+  let lastMarker = null;
+  state.weeks.forEach((w, wIdx) => {
+    if (w.month !== lastMonth) {
+      html += `<div class="month-header">${escapeHtml(w.month || '—')}</div>`;
+      lastMonth = w.month;
+      lastMarker = null;
+    }
+    // Маркер показываем только если он непустой и отличается от предыдущего
+    const showMarker = w.marker && w.marker !== lastMarker;
+    if (showMarker) {
+      html += `<div class="marker-header">${escapeHtml(w.marker)}</div>`;
+      lastMarker = w.marker;
+    }
+    html += `<div class="week-row">`;
+    w.locations.forEach((loc, lIdx) => {
+      html += renderViewCell(w, wIdx, loc, lIdx);
+    });
+    html += `</div>`;
+  });
+  html += `</div>`;
+
+  document.getElementById('content').innerHTML = html;
+}
+
+function renderViewCell(week, wIdx, loc, lIdx) {
+  const hasContent = loc.slots && loc.slots.some(s => s.theme || s.teacher);
+  let html = `<div class="location-cell ${!hasContent ? 'empty' : ''}">`;
+  // Дата
+  if (loc.dateRange) {
+    html += `<div class="week-date ${!hasContent ? 'dim' : ''}">${escapeHtml(loc.dateRange)}</div>`;
+  }
+  // Многодневный банер
+  if (loc.multiDayLabel) {
+    html += `<div class="multi-day-banner">${escapeHtml(loc.multiDayLabel)}</div>`;
+  }
+  // Слоты
+  if (hasContent) {
+    loc.slots.forEach((s, sIdx) => {
+      if (!s.theme && !s.teacher) return;
+      const cost = s.cost ? s.cost + 'р' : '';
+      const hasDesc = !!(s.description && s.description.trim());
+      html += `
+        <div class="slot-line">
+          <span class="time">${escapeHtml(s.time || '')}</span>
+          <span class="theme" ${hasDesc ? `onclick="showSlotDetails(${wIdx},${lIdx},${sIdx})"` : ''}>${escapeHtml(s.theme || '')}${hasDesc ? ' ⓘ' : ''}</span>
+          <span class="teacher">${escapeHtml(s.teacher || '')}</span>
+          <span class="cost">${escapeHtml(cost)}</span>
+        </div>
+      `;
+    });
+  } else if (!loc.dateRange) {
+    html += `<span class="empty-msg">—</span>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function showSlotDetails(wIdx, lIdx, sIdx) {
+  const w = state.weeks[wIdx]; if (!w) return;
+  const loc = w.locations[lIdx]; if (!loc) return;
+  const s = loc.slots[sIdx]; if (!s) return;
+  const locName = state.locations[lIdx];
+  document.getElementById('modal-content').innerHTML = `
+    <h2>${escapeHtml(s.theme || '—')}</h2>
+    <div class="meta">
+      ${escapeHtml(locName)} · ${escapeHtml(loc.dateRange || '')} · ${escapeHtml(s.time || '')}<br>
+      Педагог: ${escapeHtml(s.teacher || '—')}
+      ${s.cost ? ' · Стоимость: ' + escapeHtml(s.cost) + 'р' : ''}
+    </div>
+    ${s.description ? `<p>${escapeHtml(s.description).replace(/\n/g, '<br>')}</p>` : ''}
+    <button class="modal-close" onclick="closeModal()">закрыть</button>
+  `;
+  document.getElementById('modal-overlay').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
+init();
+</script>

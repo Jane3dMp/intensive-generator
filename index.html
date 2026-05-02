@@ -1,0 +1,1943 @@
+<!-- Генератор расписания интенсивов «Прознание + Coddy» -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Интенсивы — Прознание</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&family=Caveat:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #151617;
+    --paper: #F5F5F0;
+    --paper-warm: #FFFDF5;
+    --paper-deep: #ECECE5;
+    --yellow: #FED634;
+    --yellow-deep: #E8C200;
+    --yellow-soft: #FFF6CC;
+    --green: #7ED957;
+    --green-deep: #5FB835;
+    --green-soft: #C8F0B6;
+    --orange-soft: #FFE4B5;
+    --white: #FFFFFF;
+    --sky: #41BEEA;
+    --sky-deep: #3495B8;
+    --sky-soft: #EBF4FE;
+    --shadow: rgba(21,22,23,0.08);
+    --danger: #c0392b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Geologica, system-ui, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    padding: 20px;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 10% 5%, rgba(254,214,52,0.06) 0%, transparent 40%),
+      radial-gradient(circle at 90% 95%, rgba(65,190,234,0.05) 0%, transparent 40%);
+  }
+
+  .header {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 16px;
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .title-block { flex: 1; min-width: 280px; }
+  .eyebrow {
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: rgba(21,22,23,0.55);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  h1 {
+    font-family: Geologica, sans-serif;
+    font-weight: 600;
+    font-size: 32px;
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+  h1 em {
+    font-family: Caveat, cursive;
+    font-style: normal;
+    font-weight: 600;
+    background: var(--yellow);
+    padding: 0 8px;
+    border-radius: 4px;
+  }
+  .subtitle {
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    color: rgba(21,22,23,0.6);
+    margin-top: 6px;
+  }
+
+  /* Кнопки */
+  .btn {
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 7px 12px;
+    border: 1px solid var(--ink);
+    background: var(--white);
+    color: var(--ink);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--paper-deep); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn-primary {
+    background: var(--yellow);
+    border-color: var(--ink);
+    font-weight: 600;
+  }
+  .btn-primary:hover { background: var(--yellow-deep); }
+  .btn-ghost { background: transparent; border-color: rgba(21,22,23,0.3); }
+  .btn-sm { padding: 4px 8px; font-size: 11px; }
+  .btn-danger { color: var(--danger); border-color: var(--danger); }
+  .btn-danger:hover { background: #fef2f0; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+    align-items: center;
+  }
+
+  /* Шапка-настройки */
+  .config-bar {
+    background: var(--paper-warm);
+    border: 1px solid rgba(21,22,23,0.15);
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin-bottom: 18px;
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .config-bar label {
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(21,22,23,0.55);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .config-bar input[type=text],
+  .config-bar input[type=date],
+  .config-bar input[type=number] {
+    font-family: Geologica, sans-serif;
+    font-size: 14px;
+    padding: 6px 10px;
+    border: 1px solid rgba(21,22,23,0.25);
+    border-radius: 4px;
+    background: var(--white);
+    color: var(--ink);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  /* Локации (3 шапки таблицы) */
+  .locations-edit {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .location-edit {
+    background: var(--yellow);
+    border: 1px solid var(--ink);
+    border-radius: 4px;
+    padding: 10px 14px;
+    text-align: center;
+  }
+  .location-edit input {
+    background: transparent;
+    border: none;
+    font-family: Geologica, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    width: 100%;
+    color: var(--ink);
+    outline: none;
+  }
+  .location-edit input:focus {
+    background: var(--white);
+    outline: 1px solid var(--ink);
+    border-radius: 2px;
+  }
+
+  /* Таблица недель */
+  .schedule {
+    background: var(--white);
+    border: 1px solid var(--ink);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px var(--shadow);
+  }
+
+  .month-header {
+    background: var(--orange-soft);
+    border-top: 2px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    padding: 8px 14px;
+    font-family: Geologica, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .month-header:first-child { border-top: none; }
+
+  .marker-header {
+    background: var(--paper-deep);
+    border-bottom: 1px solid var(--ink);
+    padding: 6px 14px;
+    font-family: Inter, sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    text-align: center;
+    color: rgba(21,22,23,0.7);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .marker-header:hover { background: rgba(21,22,23,0.12); }
+  .marker-header input {
+    background: transparent;
+    border: none;
+    font-family: Inter, sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    text-align: center;
+    color: rgba(21,22,23,0.7);
+    width: 100%;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    outline: none;
+    cursor: text;
+  }
+  .marker-header input:focus {
+    background: var(--white);
+    outline: 1px solid var(--ink);
+    border-radius: 2px;
+  }
+
+  /* Неделя — 3 колонки */
+  .week-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-bottom: 1px solid rgba(21,22,23,0.15);
+  }
+  .week-row:last-child { border-bottom: none; }
+
+  .location-cell {
+    border-right: 1px solid rgba(21,22,23,0.15);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 100px;
+  }
+  .location-cell:last-child { border-right: none; }
+
+  .week-date {
+    font-family: Geologica, sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--green);
+    padding: 3px 8px;
+    border-radius: 3px;
+    display: inline-block;
+    width: fit-content;
+    cursor: pointer;
+  }
+  .week-date.empty {
+    background: transparent;
+    color: rgba(21,22,23,0.3);
+    border: 1px dashed rgba(21,22,23,0.3);
+    font-weight: 400;
+  }
+  .week-date input {
+    background: transparent;
+    border: none;
+    font-family: Geologica, sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--ink);
+    width: 100%;
+    outline: none;
+  }
+
+  .multi-day-banner {
+    background: var(--orange-soft);
+    border: 1px solid #e0b056;
+    padding: 4px 10px;
+    border-radius: 3px;
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+    margin-top: 2px;
+  }
+
+  /* Слоты времени */
+  .slot {
+    display: grid;
+    grid-template-columns: 70px 1fr 90px 36px;
+    gap: 6px;
+    align-items: start;
+    padding: 5px 6px;
+    border-radius: 3px;
+    background: var(--green);
+    border: 1px solid var(--green-deep);
+    cursor: text;
+    transition: background 0.15s;
+  }
+  .slot.empty {
+    background: transparent;
+    border: 1px dashed rgba(21,22,23,0.2);
+  }
+  .slot.empty:hover {
+    background: rgba(126,217,87,0.15);
+    border-color: var(--green-deep);
+  }
+  .slot input {
+    background: transparent;
+    border: none;
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+    color: var(--ink);
+    outline: none;
+    width: 100%;
+    padding: 2px 0;
+  }
+  .slot input::placeholder { color: rgba(21,22,23,0.35); }
+  .slot input:focus {
+    background: var(--white);
+    outline: 1px solid rgba(21,22,23,0.3);
+    border-radius: 2px;
+    padding: 2px 4px;
+  }
+  .slot input.theme { font-weight: 500; }
+  .slot input.cost { text-align: right; font-variant-numeric: tabular-nums; }
+  .slot-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .slot-action {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px;
+    line-height: 1;
+    border-radius: 2px;
+    color: rgba(21,22,23,0.5);
+  }
+  .slot-action:hover { background: rgba(0,0,0,0.07); color: var(--ink); }
+  .slot.empty .slot-actions { visibility: hidden; }
+  .slot.empty:hover .slot-actions { visibility: visible; }
+
+  .add-slot-btn {
+    background: transparent;
+    border: 1px dashed rgba(21,22,23,0.25);
+    color: rgba(21,22,23,0.55);
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    width: fit-content;
+    transition: all 0.15s;
+  }
+  .add-slot-btn:hover {
+    background: var(--paper-deep);
+    color: var(--ink);
+    border-style: solid;
+  }
+
+  /* Тосты */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none;
+    z-index: 1000;
+    max-width: 360px;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.error { background: var(--danger); }
+  .toast.success { background: var(--green-deep); }
+
+  /* Модалка */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(21,22,23,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--white);
+    border: 1px solid var(--ink);
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  }
+  .modal h2 {
+    font-family: Geologica, sans-serif;
+    font-size: 22px;
+    margin-bottom: 8px;
+  }
+  .modal p {
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    color: rgba(21,22,23,0.7);
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .modal label {
+    display: block;
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(21,22,23,0.55);
+    margin-bottom: 4px;
+    margin-top: 12px;
+  }
+  .modal input[type=text],
+  .modal input[type=number],
+  .modal select,
+  .modal textarea {
+    font-family: Geologica, sans-serif;
+    font-size: 14px;
+    padding: 8px 10px;
+    border: 1px solid rgba(21,22,23,0.25);
+    border-radius: 4px;
+    background: var(--white);
+    color: var(--ink);
+    width: 100%;
+  }
+  .modal textarea { resize: vertical; min-height: 80px; }
+
+  .lib-suggestion {
+    border: 1px solid rgba(21,22,23,0.15);
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--paper-warm);
+  }
+  .lib-suggestion:hover {
+    border-color: var(--ink);
+    background: var(--yellow-soft);
+    transform: translateX(2px);
+  }
+  .lib-suggestion .name {
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .lib-suggestion .meta {
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    color: rgba(21,22,23,0.6);
+    margin-top: 3px;
+  }
+
+  /* Раздел публикаций */
+  .pub-list {
+    margin-top: 12px;
+  }
+  .pub-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid rgba(21,22,23,0.15);
+    border-radius: 4px;
+    margin-bottom: 6px;
+    background: var(--paper-warm);
+  }
+  .pub-item .pub-name {
+    flex: 1;
+    font-weight: 500;
+    font-size: 13px;
+  }
+  .pub-item .pub-meta {
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    color: rgba(21,22,23,0.55);
+  }
+
+  /* Загрузчик */
+  .loader {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(21,22,23,0.2);
+    border-top-color: var(--ink);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Бейдж неоп. изм. */
+  .pub-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(21,22,23,0.2);
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .pub-indicator.dirty { background: var(--yellow-deep); }
+  .pub-indicator.fresh { background: var(--green-deep); }
+
+  /* Read-only режим */
+  body.readonly-mode .slot input,
+  body.readonly-mode .week-date input,
+  body.readonly-mode .marker-header input,
+  body.readonly-mode .location-edit input,
+  body.readonly-mode .config-bar input { pointer-events: none; opacity: 0.7; }
+  body.readonly-mode .btn:not(.always-on) { opacity: 0.4; pointer-events: none; }
+
+  @media (max-width: 900px) {
+    body { padding: 12px; }
+    .week-row { grid-template-columns: 1fr; }
+    .location-cell { border-right: none; border-bottom: 1px solid rgba(21,22,23,0.1); }
+    .locations-edit { grid-template-columns: 1fr; }
+    .slot { grid-template-columns: 60px 1fr 80px 32px; font-size: 11px; }
+  }
+</style>
+
+<div class="header">
+  <div class="title-block">
+    <div class="eyebrow">Прознание + Coddy · интенсивы</div>
+    <h1>Сетка <em>интенсивов</em></h1>
+    <div class="subtitle" id="status-line">Загружаю библиотеку…</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <button class="btn btn-ghost" onclick="undoLast()" title="Ctrl+Z" id="btn-undo" disabled>↶ отменить</button>
+    <button class="btn btn-ghost" onclick="openDraftsList()">📁 черновики</button>
+    <button class="btn" onclick="openLibraryPanel()">📚 библиотека</button>
+    <button class="btn btn-primary" onclick="openPublishPanel()">
+      <span class="pub-indicator" id="pub-ind"></span>
+      <span id="pub-btn-label">🌐 опубликовать</span>
+    </button>
+  </div>
+</div>
+
+<div class="toolbar">
+  <button class="btn" onclick="aiFillEmpty()">⚡ ИИ: заполнить пустые слоты</button>
+  <button class="btn" onclick="aiSuggestThemes()">💡 ИИ: подобрать тему</button>
+  <button class="btn" onclick="addWeekRow()">＋ добавить неделю</button>
+  <button class="btn btn-ghost" onclick="clearAllSlots()">🧹 очистить все слоты</button>
+  <span style="flex:1"></span>
+  <button class="btn btn-ghost" onclick="exportJSON()">⬇ экспорт JSON</button>
+  <button class="btn btn-ghost" onclick="importJSONClick()">⬆ импорт JSON</button>
+  <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
+</div>
+
+<div class="config-bar">
+  <label>
+    Название
+    <input type="text" id="cfg-title" oninput="setTitle(this.value)" placeholder="Интенсивы лето 2026">
+  </label>
+  <label>
+    Возраст
+    <input type="text" id="cfg-ages" oninput="setAges(this.value)" placeholder="6–11 лет" style="width:100px">
+  </label>
+  <label>
+    Стоимость по умолч., р
+    <input type="number" id="cfg-cost" oninput="setDefaultCost(this.value)" placeholder="40" style="width:80px">
+  </label>
+  <label>
+    Имя редактора
+    <input type="text" id="cfg-editor" oninput="setEditor(this.value)" placeholder="Юля" style="width:120px">
+  </label>
+</div>
+
+<div class="locations-edit" id="locations-edit"></div>
+
+<div class="schedule" id="schedule"></div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+// ============================================================
+// КОНФИГУРАЦИЯ
+// ============================================================
+// URL Apps Script Web App. Подставьте свой после деплоя Code.gs.
+// До настройки можно работать с пустой библиотекой и localStorage.
+const LIBRARY_URL = 'https://script.google.com/macros/s/REPLACE_WITH_YOUR_DEPLOYMENT_URL/exec';
+
+// Тип проекта — отделяет данные интенсивов от лагерных в общем Apps Script
+const PROJECT_TYPE = 'intensive';
+
+// Сессии: heartbeat каждые N мс
+const SESSION_HEARTBEAT_MS = 60000;
+
+// ============================================================
+// ГЛОБАЛЬНОЕ СОСТОЯНИЕ
+// ============================================================
+let LIBRARY = [];         // активности из Sheets
+let DETAILS = {};         // реквизиты
+let state = null;         // текущая сетка
+let _sessionId = null;
+let _editorName = '';
+let _isReadOnly = false;
+let _heartbeatTimer = null;
+let _undoStack = [];      // стек прошлых state-снимков (до 20)
+const MAX_UNDO = 20;
+
+// localStorage ключ
+const LS_KEY = 'intensive_state_v1';
+
+// Сейчас загружено ли уже из URL (чтобы не загрузить дважды)
+let _initialized = false;
+
+// ============================================================
+// КОНСТАНТЫ
+// ============================================================
+const MONTHS_NOM = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+const MONTHS_GEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+
+// Маркеры смен (как на скрине). Просто справочные подписи между рядами.
+const DEFAULT_MARKERS = ['Смешанная','МНО','Творческая','IT'];
+
+// Дефолтные слоты времени
+const DEFAULT_SLOTS = ['11-13', '14-16'];
+
+// ============================================================
+// SLOT / WEEK / STATE — фабрики
+// ============================================================
+function makeSlot(opts={}) {
+  return {
+    time: opts.time || '11-13',
+    theme: opts.theme || '',
+    teacher: opts.teacher || '',
+    cost: opts.cost || '',
+    color: opts.color || 'green',  // 'green' (норма) | '' (без цвета)
+    description: opts.description || '',  // расширенное описание (через ИИ)
+    template: opts.template || '',  // имя шаблона из библиотеки если использован
+    locked: false
+  };
+}
+
+function makeLocationData() {
+  return {
+    dateRange: '',         // "1 - 5 июня"
+    multiDayLabel: '',     // "4 дня" / "5 дней" — банер сверху
+    slots: [
+      makeSlot({ time: '11-13' }),
+      makeSlot({ time: '14-16' })
+    ]
+  };
+}
+
+function makeWeek(opts={}) {
+  return {
+    id: 'w_' + Math.random().toString(36).slice(2, 9),
+    month: opts.month || '',     // "июнь" — для группировки
+    marker: opts.marker || '',    // "МНО" / "Творческая" / etc.
+    locations: [
+      makeLocationData(),
+      makeLocationData(),
+      makeLocationData()
+    ]
+  };
+}
+
+function makeDefaultState() {
+  // Стартовая раскладка — 16 недель (как на скрине июнь-август)
+  // с типичными датами и маркерами. Пользователь правит.
+  const weeks = [];
+  // ИЮНЬ
+  weeks.push({ ...makeWeek(), month: 'июнь', marker: 'Смешанная' });
+  weeks[weeks.length-1].locations.forEach(l => l.dateRange = '1 - 5 июня');
+  weeks.push({ ...makeWeek(), month: 'июнь', marker: 'Смешанная' });
+  weeks[weeks.length-1].locations.forEach(l => l.dateRange = '8 - 12 июня');
+  weeks.push({ ...makeWeek(), month: 'июнь', marker: 'МНО' });
+  weeks[weeks.length-1].locations.forEach(l => l.dateRange = '15 - 19 июня');
+  weeks.push({ ...makeWeek(), month: 'июнь', marker: 'МНО' });
+  weeks[weeks.length-1].locations.forEach(l => l.dateRange = '22 - 26 июня');
+  // ИЮЛЬ
+  weeks.push({ ...makeWeek(), month: 'июль', marker: 'Творческая' });
+  weeks[weeks.length-1].locations.forEach(l => l.dateRange = '29 - 3 июля');
+  weeks.push({ ...makeWeek(), month: 'июль', marker: 'Творческая' });
+  weeks[weeks.length-1].locations.forEach(l => l.dateRange = '6 - 10 июля');
+  weeks.push({ ...makeWeek(), month: 'июль', marker: 'IT' });
+  weeks[weeks.length-1].locations.forEach(l => l.dateRange = '13 - 17 июля');
+  weeks.push({ ...makeWeek(), month: 'июль', marker: 'IT' });
+  weeks[weeks.length-1].locations.forEach(l => l.dateRange = '20 - 24 июля');
+  weeks.push({ ...makeWeek(), month: 'июль', marker: 'МНО' });
+  weeks[weeks.length-1].locations.forEach(l => l.dateRange = '27 - 31 июля');
+  // АВГУСТ
+  weeks.push({ ...makeWeek(), month: 'август', marker: 'МНО' });
+  weeks[weeks.length-1].locations.forEach(l => l.dateRange = '3 - 7 августа');
+  weeks.push({ ...makeWeek(), month: 'август', marker: 'Смешанная' });
+  weeks[weeks.length-1].locations.forEach(l => l.dateRange = '10 - 14 августа');
+  weeks.push({ ...makeWeek(), month: 'август', marker: 'Смешанная' });
+  weeks[weeks.length-1].locations.forEach(l => l.dateRange = '17 - 21 августа');
+  weeks.push({ ...makeWeek(), month: 'август', marker: 'Смешанная' });
+  weeks[weeks.length-1].locations.forEach(l => l.dateRange = '24 - 28 августа');
+
+  return {
+    title: 'Интенсивы лето 2026',
+    ages: '6–11 лет',
+    defaultCost: 40,
+    locations: ['Пожарный 19', 'Пожарный 3Б (Детали)', 'Спутник'],
+    weeks: weeks,
+    publishId: null,
+    _draftId: null,
+    _draftName: ''
+  };
+}
+
+// ============================================================
+// LIBRARY (загрузка)
+// ============================================================
+async function loadLibrary() {
+  try {
+    const url = LIBRARY_URL + '?action=all&project=' + encodeURIComponent(PROJECT_TYPE);
+    const r = await fetch(url);
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'API error');
+    LIBRARY = Array.isArray(data.activities) ? data.activities : [];
+    DETAILS = (data.details && typeof data.details === 'object') ? data.details : {};
+    setStatus('Библиотека: ' + LIBRARY.length + ' тем');
+    return LIBRARY;
+  } catch(e) {
+    console.error('loadLibrary failed:', e);
+    setStatus('⚠ Библиотека недоступна — работаю локально');
+    LIBRARY = [];
+    return [];
+  }
+}
+
+function setStatus(msg) {
+  const el = document.getElementById('status-line');
+  if (el) el.textContent = msg;
+}
+
+// ============================================================
+// LOCAL STORAGE / UNDO
+// ============================================================
+function saveLocal() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    updatePubIndicator();
+  } catch(e) {
+    console.warn('saveLocal:', e);
+  }
+}
+
+function loadLocal() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    return obj && typeof obj === 'object' ? obj : null;
+  } catch(e) {
+    return null;
+  }
+}
+
+function pushUndo() {
+  if (!state) return;
+  try {
+    _undoStack.push(JSON.stringify(state));
+    if (_undoStack.length > MAX_UNDO) _undoStack.shift();
+    document.getElementById('btn-undo').disabled = false;
+  } catch(e) {}
+}
+
+function undoLast() {
+  if (!_undoStack.length) return;
+  const prev = _undoStack.pop();
+  try {
+    state = JSON.parse(prev);
+    saveLocal();
+    render();
+    toast('Отменено', 'success');
+  } catch(e) {}
+  if (!_undoStack.length) document.getElementById('btn-undo').disabled = true;
+}
+
+// Ctrl+Z
+window.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    e.preventDefault();
+    undoLast();
+  }
+});
+
+// ============================================================
+// TOAST
+// ============================================================
+let _toastTimer = null;
+function toast(msg, kind='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + (kind || '');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.className = 'toast'; }, 3500);
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function openModal(html) {
+  const wrap = document.getElementById('modal-overlay');
+  document.getElementById('modal-content').innerHTML = html;
+  wrap.classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
+// ============================================================
+// HELPERS
+// ============================================================
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function escapeJs(s) {
+  return String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function render() {
+  if (!state) return;
+
+  // Конфиг-бар
+  document.getElementById('cfg-title').value = state.title || '';
+  document.getElementById('cfg-ages').value = state.ages || '';
+  document.getElementById('cfg-cost').value = state.defaultCost || '';
+  document.getElementById('cfg-editor').value = _editorName || '';
+
+  renderLocations();
+  renderSchedule();
+  updatePubIndicator();
+}
+
+function renderLocations() {
+  const wrap = document.getElementById('locations-edit');
+  wrap.innerHTML = state.locations.map((name, i) => `
+    <div class="location-edit">
+      <input type="text" value="${escapeHtml(name)}" data-loc-idx="${i}" onchange="renameLocation(${i}, this.value)">
+    </div>
+  `).join('');
+}
+
+function renameLocation(idx, name) {
+  pushUndo();
+  state.locations[idx] = name;
+  saveLocal();
+}
+
+function renderSchedule() {
+  const wrap = document.getElementById('schedule');
+  let html = '';
+  let lastMonth = null;
+
+  state.weeks.forEach((w, wIdx) => {
+    // Заголовок месяца
+    if (w.month !== lastMonth) {
+      html += `<div class="month-header">${escapeHtml(w.month || '—')}</div>`;
+      lastMonth = w.month;
+    }
+    // Маркер смены лагеря (заполняется вручную)
+    html += `
+      <div class="marker-header">
+        <input type="text" value="${escapeHtml(w.marker || '')}"
+          placeholder="—маркер смены (МНО / Творческая / Смешанная / IT) —"
+          onchange="setWeekMarker('${w.id}', this.value)">
+      </div>
+    `;
+    // Ряд недели — 3 колонки
+    html += `<div class="week-row">`;
+    w.locations.forEach((loc, lIdx) => {
+      html += renderLocationCell(w, wIdx, loc, lIdx);
+    });
+    html += `</div>`;
+  });
+
+  wrap.innerHTML = html;
+}
+
+function renderLocationCell(week, wIdx, loc, lIdx) {
+  const dateClass = loc.dateRange ? 'week-date' : 'week-date empty';
+  let html = `<div class="location-cell">`;
+  html += `<div class="${dateClass}">
+    <input type="text" value="${escapeHtml(loc.dateRange || '')}"
+      placeholder="—дата—"
+      onchange="setLocDate('${week.id}', ${lIdx}, this.value)" style="background:transparent;border:none;width:100%;outline:none;font:inherit;color:inherit">
+  </div>`;
+
+  // Многодневный банер
+  if (loc.multiDayLabel) {
+    html += `<div class="multi-day-banner" onclick="editMultiDay('${week.id}', ${lIdx})">${escapeHtml(loc.multiDayLabel)}</div>`;
+  } else {
+    html += `<button class="add-slot-btn" onclick="editMultiDay('${week.id}', ${lIdx})" style="font-size:10px;padding:2px 6px">+ длит.</button>`;
+  }
+
+  // Слоты
+  loc.slots.forEach((slot, sIdx) => {
+    html += renderSlot(week.id, wIdx, lIdx, slot, sIdx);
+  });
+
+  // Кнопка добавить слот
+  html += `<button class="add-slot-btn" onclick="addSlot('${week.id}', ${lIdx})">＋ слот</button>`;
+
+  html += `</div>`;
+  return html;
+}
+
+function renderSlot(weekId, wIdx, lIdx, slot, sIdx) {
+  const cls = (slot.theme || slot.teacher) ? 'slot' : 'slot empty';
+  return `
+    <div class="${cls}" data-slot="${weekId}-${lIdx}-${sIdx}">
+      <input class="time" value="${escapeHtml(slot.time)}" placeholder="11-13"
+        onchange="setSlotField('${weekId}',${lIdx},${sIdx},'time',this.value)" title="время">
+      <input class="theme" value="${escapeHtml(slot.theme)}" placeholder="тема занятия"
+        onchange="setSlotField('${weekId}',${lIdx},${sIdx},'theme',this.value)">
+      <input class="teacher" value="${escapeHtml(slot.teacher)}" placeholder="педагог"
+        onchange="setSlotField('${weekId}',${lIdx},${sIdx},'teacher',this.value)" style="grid-column:auto">
+      <div class="slot-actions">
+        <button class="slot-action" onclick="openSlotMenu('${weekId}',${lIdx},${sIdx})" title="меню">⋯</button>
+        <button class="slot-action" onclick="removeSlot('${weekId}',${lIdx},${sIdx})" title="удалить">✕</button>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// EDIT HANDLERS
+// ============================================================
+function setTitle(v) { pushUndo(); state.title = v; saveLocal(); }
+function setAges(v) { pushUndo(); state.ages = v; saveLocal(); }
+function setDefaultCost(v) { pushUndo(); state.defaultCost = parseFloat(v) || 0; saveLocal(); }
+function setEditor(v) {
+  _editorName = v;
+  try { localStorage.setItem('intensive_editor_name', v); } catch(e) {}
+}
+
+function findWeek(id) { return state.weeks.find(w => w.id === id); }
+
+function setWeekMarker(weekId, val) {
+  pushUndo();
+  const w = findWeek(weekId); if (!w) return;
+  w.marker = val;
+  saveLocal();
+}
+
+function setLocDate(weekId, lIdx, val) {
+  pushUndo();
+  const w = findWeek(weekId); if (!w) return;
+  w.locations[lIdx].dateRange = val;
+  saveLocal();
+  // не делаем render — только этот input уже обновлён
+}
+
+function setSlotField(weekId, lIdx, sIdx, field, val) {
+  pushUndo();
+  const w = findWeek(weekId); if (!w) return;
+  const slot = w.locations[lIdx].slots[sIdx];
+  if (!slot) return;
+  slot[field] = val;
+  // Если что-то ввели в пустой слот — переключаем визуально
+  saveLocal();
+  // Лёгкий ре-рендер только этой ячейки чтобы обновить класс empty/нормальный
+  const cell = document.querySelector(`[data-slot="${weekId}-${lIdx}-${sIdx}"]`);
+  if (cell) {
+    if (slot.theme || slot.teacher) cell.classList.remove('empty');
+    else cell.classList.add('empty');
+  }
+}
+
+function addSlot(weekId, lIdx) {
+  pushUndo();
+  const w = findWeek(weekId); if (!w) return;
+  const existingTimes = w.locations[lIdx].slots.map(s => s.time);
+  let newTime = '11-13';
+  if (existingTimes.length === 0) newTime = '11-13';
+  else if (!existingTimes.includes('14-16')) newTime = '14-16';
+  else if (!existingTimes.includes('10:30-13')) newTime = '10:30-13';
+  else newTime = '';
+  w.locations[lIdx].slots.push(makeSlot({ time: newTime }));
+  saveLocal();
+  render();
+}
+
+function removeSlot(weekId, lIdx, sIdx) {
+  pushUndo();
+  const w = findWeek(weekId); if (!w) return;
+  w.locations[lIdx].slots.splice(sIdx, 1);
+  saveLocal();
+  render();
+}
+
+function editMultiDay(weekId, lIdx) {
+  const w = findWeek(weekId); if (!w) return;
+  const cur = w.locations[lIdx].multiDayLabel || '';
+  openModal(`
+    <h2>Длительность интенсива</h2>
+    <p>Если интенсив идёт не всю неделю, а 4-5 дней с большим занятием — добавьте подпись (например: <em>«4 дня»</em>, <em>«5 дней»</em>) и измените слот времени на длинный (например <em>«10:30-13»</em>).</p>
+    <label>Подпись (оставьте пустой чтобы скрыть)</label>
+    <input type="text" id="md-input" value="${escapeHtml(cur)}" placeholder="4 дня">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">отмена</button>
+      <button class="btn btn-primary" onclick="saveMultiDay('${weekId}',${lIdx})">сохранить</button>
+    </div>
+  `);
+  setTimeout(() => document.getElementById('md-input').focus(), 50);
+}
+
+function saveMultiDay(weekId, lIdx) {
+  pushUndo();
+  const w = findWeek(weekId); if (!w) return;
+  const val = document.getElementById('md-input').value.trim();
+  w.locations[lIdx].multiDayLabel = val;
+  saveLocal();
+  closeModal();
+  render();
+}
+
+function addWeekRow() {
+  pushUndo();
+  // Копируем последний месяц/маркер чтобы было удобно
+  const last = state.weeks[state.weeks.length - 1];
+  const w = makeWeek({
+    month: last ? last.month : '',
+    marker: last ? last.marker : ''
+  });
+  state.weeks.push(w);
+  saveLocal();
+  render();
+}
+
+function removeWeekRow(weekId) {
+  if (!confirm('Удалить неделю целиком?')) return;
+  pushUndo();
+  state.weeks = state.weeks.filter(w => w.id !== weekId);
+  saveLocal();
+  render();
+}
+
+function clearAllSlots() {
+  if (!confirm('Очистить все слоты во всех неделях? (Даты, маркеры, локации останутся)')) return;
+  pushUndo();
+  state.weeks.forEach(w => {
+    w.locations.forEach(loc => {
+      loc.slots = [
+        makeSlot({ time: '11-13' }),
+        makeSlot({ time: '14-16' })
+      ];
+      loc.multiDayLabel = '';
+    });
+  });
+  saveLocal();
+  render();
+  toast('Слоты очищены', 'success');
+}
+
+// ============================================================
+// SLOT MENU (one slot)
+// ============================================================
+function openSlotMenu(weekId, lIdx, sIdx) {
+  const w = findWeek(weekId); if (!w) return;
+  const slot = w.locations[lIdx].slots[sIdx];
+  const locName = state.locations[lIdx];
+  const dateRange = w.locations[lIdx].dateRange;
+  openModal(`
+    <h2>Слот: ${escapeHtml(locName)} · ${escapeHtml(dateRange || '—')}</h2>
+    <p>${escapeHtml(slot.time || '')} · ${escapeHtml(slot.theme || '—')}</p>
+
+    <label>Время</label>
+    <input type="text" id="sm-time" value="${escapeHtml(slot.time)}">
+
+    <label>Тема</label>
+    <input type="text" id="sm-theme" value="${escapeHtml(slot.theme)}">
+
+    <label>Педагог</label>
+    <input type="text" id="sm-teacher" value="${escapeHtml(slot.teacher)}">
+
+    <label>Стоимость, р</label>
+    <input type="number" id="sm-cost" value="${escapeHtml(slot.cost || '')}" placeholder="${state.defaultCost}">
+
+    <label>Описание / комментарий</label>
+    <textarea id="sm-desc" placeholder="Что именно ребёнок делает (для родителей и педагога)">${escapeHtml(slot.description || '')}</textarea>
+
+    <div style="display:flex;gap:6px;margin-top:14px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="aiSuggestForSlot('${weekId}',${lIdx},${sIdx})">💡 ИИ: подобрать тему</button>
+      <button class="btn btn-ghost btn-sm" onclick="aiExpandDescription('${weekId}',${lIdx},${sIdx})">✨ ИИ: расширить описание</button>
+      <button class="btn btn-ghost btn-sm" onclick="openLibForSlot('${weekId}',${lIdx},${sIdx})">📚 из библиотеки</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-danger" onclick="clearSlot('${weekId}',${lIdx},${sIdx})">очистить</button>
+      <span style="flex:1"></span>
+      <button class="btn btn-ghost" onclick="closeModal()">отмена</button>
+      <button class="btn btn-primary" onclick="saveSlotMenu('${weekId}',${lIdx},${sIdx})">сохранить</button>
+    </div>
+  `);
+}
+
+function saveSlotMenu(weekId, lIdx, sIdx) {
+  pushUndo();
+  const w = findWeek(weekId); if (!w) return;
+  const slot = w.locations[lIdx].slots[sIdx];
+  slot.time = document.getElementById('sm-time').value.trim();
+  slot.theme = document.getElementById('sm-theme').value.trim();
+  slot.teacher = document.getElementById('sm-teacher').value.trim();
+  slot.cost = document.getElementById('sm-cost').value.trim();
+  slot.description = document.getElementById('sm-desc').value.trim();
+  saveLocal();
+  closeModal();
+  render();
+}
+
+function clearSlot(weekId, lIdx, sIdx) {
+  pushUndo();
+  const w = findWeek(weekId); if (!w) return;
+  const old = w.locations[lIdx].slots[sIdx];
+  w.locations[lIdx].slots[sIdx] = makeSlot({ time: old.time });
+  saveLocal();
+  closeModal();
+  render();
+}
+
+// ============================================================
+// LIBRARY PICKER
+// ============================================================
+function openLibForSlot(weekId, lIdx, sIdx) {
+  if (!LIBRARY.length) {
+    toast('Библиотека пуста — добавьте темы в Google Sheets', 'error');
+    return;
+  }
+  const items = LIBRARY.map((it, idx) => `
+    <div class="lib-suggestion" onclick="applyLibToSlot('${weekId}',${lIdx},${sIdx},${idx})">
+      <div class="name">${escapeHtml(it.template || it.name || '—')}</div>
+      <div class="meta">${escapeHtml(it.teacher || '')}${it.direction ? ' · ' + escapeHtml(it.direction) : ''}${it.age ? ' · ' + escapeHtml(it.age) : ''}</div>
+      ${it.description ? `<div class="meta" style="margin-top:4px">${escapeHtml(it.description.slice(0,140))}${it.description.length>140?'…':''}</div>` : ''}
+    </div>
+  `).join('');
+  openModal(`
+    <h2>Выберите тему из библиотеки</h2>
+    <p>${LIBRARY.length} тем доступны. Клик — подставить в слот.</p>
+    <input type="text" id="lib-filter" placeholder="🔎 поиск" oninput="filterLibList(this.value)" style="width:100%;margin-bottom:10px">
+    <div id="lib-list">${items}</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">закрыть</button>
+    </div>
+  `);
+}
+
+function filterLibList(q) {
+  q = q.toLowerCase().trim();
+  document.querySelectorAll('#lib-list .lib-suggestion').forEach(el => {
+    const txt = el.textContent.toLowerCase();
+    el.style.display = (!q || txt.includes(q)) ? '' : 'none';
+  });
+}
+
+function applyLibToSlot(weekId, lIdx, sIdx, libIdx) {
+  pushUndo();
+  const w = findWeek(weekId); if (!w) return;
+  const slot = w.locations[lIdx].slots[sIdx];
+  const item = LIBRARY[libIdx];
+  if (!item) return;
+  slot.theme = item.template || item.name || '';
+  slot.teacher = item.teacher || '';
+  slot.template = item.template || '';
+  if (!slot.cost && state.defaultCost) slot.cost = String(state.defaultCost);
+  if (!slot.description && item.description) slot.description = item.description;
+  saveLocal();
+  closeModal();
+  render();
+  toast('Тема подставлена', 'success');
+}
+
+function openLibraryPanel() {
+  if (!LIBRARY.length) {
+    openModal(`
+      <h2>📚 Библиотека пуста</h2>
+      <p>Чтобы заполнить библиотеку — откройте Google Sheets вашего проекта и добавьте темы на лист «Активности» (project = <code>intensive</code>) со статусом «утверждено».</p>
+      <p>Структура колонок: <em>Статус | Шаблон занятия | Примеры тем | Педагог | Направление | Локация / кабинет | Возраст | Длительность (мин) | Формат | Описание</em></p>
+      <div class="modal-actions"><button class="btn btn-primary" onclick="closeModal()">понятно</button></div>
+    `);
+    return;
+  }
+  const items = LIBRARY.map(it => `
+    <div class="lib-suggestion">
+      <div class="name">${escapeHtml(it.template || it.name || '—')}</div>
+      <div class="meta">${escapeHtml(it.teacher || '')}${it.direction ? ' · ' + escapeHtml(it.direction) : ''}${it.age ? ' · ' + escapeHtml(it.age) : ''}${it.duration ? ' · ' + it.duration + ' мин' : ''}</div>
+      ${it.description ? `<div class="meta" style="margin-top:4px">${escapeHtml(it.description.slice(0,200))}${it.description.length>200?'…':''}</div>` : ''}
+    </div>
+  `).join('');
+  openModal(`
+    <h2>📚 Библиотека интенсивов</h2>
+    <p>${LIBRARY.length} тем. Редактирование — в Google Sheets вашего проекта.</p>
+    <input type="text" id="lib-filter" placeholder="🔎 поиск" oninput="filterLibList(this.value)" style="width:100%;margin-bottom:10px">
+    <div id="lib-list">${items}</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="reloadLibrary()">↻ обновить</button>
+      <button class="btn btn-primary" onclick="closeModal()">закрыть</button>
+    </div>
+  `);
+}
+
+async function reloadLibrary() {
+  setStatus('Перезагружаю библиотеку…');
+  await loadLibrary();
+  closeModal();
+  toast('Библиотека обновлена: ' + LIBRARY.length + ' тем', 'success');
+}
+
+// ============================================================
+// AI: подбор тем, расширение описаний, заполнение пустых
+// ============================================================
+async function callClaude(prompt, system) {
+  try {
+    const r = await fetch(LIBRARY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'claude',
+        project: PROJECT_TYPE,
+        prompt: prompt,
+        system: system || SYSTEM_PROMPT_INTENSIVE
+      })
+    });
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'Apps Script error');
+    if (!data.text) throw new Error('Пустой ответ ИИ');
+    return data.text;
+  } catch(e) {
+    console.error('callClaude:', e);
+    throw e;
+  }
+}
+
+const SYSTEM_PROMPT_INTENSIVE = `Ты — методист детского клуба развития «Прознание» в Могилёве. Помогаешь составлять расписание ИНТЕНСИВОВ — недельных программ для детей 6-11 лет.
+
+СТРУКТУРА ИНТЕНСИВА:
+— одна неделя (5 рабочих дней)
+— проводится в одной из 3 локаций параллельно (Пожарный 19 / Пожарный 3Б (Детали) / Спутник)
+— обычно 2 занятия в день: 11-13 и 14-16, длительность ~2 часа
+— иногда 4-5 дневный интенсив с одним длинным занятием в день (10:30-13)
+— возраст детей: 6-11 лет
+
+НАПРАВЛЕНИЯ ИНТЕНСИВОВ:
+- Творческая (стикеры, мастер-классы по рисованию, лепке, макраме)
+- IT (Roblox, ИИ в учёбе, программирование, роботехника)
+- МНО (мир научных открытий, наука, эксперименты)
+- Смешанная (микс направлений)
+- Soft skills (взросление для девочек, тайм-менеджмент, профориентация, навыки для школы)
+
+ПЕДАГОГИ-РЕФЕРЕНСЫ:
+- Власова — взросление девочек, soft skills
+- Кургузикова — профориентация, тайм-менеджмент
+- Пашкевич — ИИ в учёбе, Roblox, IT
+- Козырев — Roblox, мастер-классы, IT
+- Злата — стикеры, творческие МК
+- Парджанадзе — ИИ в обучении
+- Печковская — навыки для школы
+
+ВАЖНО: всегда отвечай только валидным JSON, без markdown-обёрток, без текста до или после.`;
+
+async function aiSuggestThemes() {
+  // Найти первый пустой слот
+  let target = null;
+  for (const w of state.weeks) {
+    for (let li = 0; li < w.locations.length; li++) {
+      for (let si = 0; si < w.locations[li].slots.length; si++) {
+        if (!w.locations[li].slots[si].theme) {
+          target = { weekId: w.id, lIdx: li, sIdx: si };
+          break;
+        }
+      }
+      if (target) break;
+    }
+    if (target) break;
+  }
+  if (!target) {
+    toast('Все слоты уже заполнены', 'success');
+    return;
+  }
+  await aiSuggestForSlot(target.weekId, target.lIdx, target.sIdx);
+}
+
+async function aiSuggestForSlot(weekId, lIdx, sIdx) {
+  const w = findWeek(weekId); if (!w) return;
+  const slot = w.locations[lIdx].slots[sIdx];
+  const locName = state.locations[lIdx];
+  const dateRange = w.locations[lIdx].dateRange;
+
+  // Контекст: что уже стоит на этой неделе на других локациях, какой маркер, какие темы уже в году у этого педагога
+  const sameWeekThemes = [];
+  w.locations.forEach((loc, i) => {
+    if (i === lIdx) return;
+    loc.slots.forEach(s => { if (s.theme) sameWeekThemes.push(s.theme + (s.teacher ? ` (${s.teacher})` : '')); });
+  });
+  const allThemes = [];
+  state.weeks.forEach(ww => ww.locations.forEach(loc => loc.slots.forEach(s => {
+    if (s.theme) allThemes.push(s.theme);
+  })));
+
+  const libList = LIBRARY.length
+    ? '\nДОСТУПНЫЕ ТЕМЫ ИЗ БИБЛИОТЕКИ:\n' + LIBRARY.map(it => `- ${it.template || it.name} (${it.teacher || '?'}, ${it.direction || '?'})`).join('\n')
+    : '';
+
+  const prompt = `Подбери 3-5 подходящих тем для слота интенсива.
+Локация: ${locName}
+Неделя: ${dateRange || '?'}
+Маркер смены: ${w.marker || '—'}
+Время: ${slot.time}
+Возраст детей: ${state.ages || '6-11 лет'}
+
+На той же неделе у других локаций уже стоят: ${sameWeekThemes.length ? sameWeekThemes.join('; ') : '—'}
+В целом по году используются: ${allThemes.length ? allThemes.slice(0, 30).join(', ') + (allThemes.length>30?'...':''): '—'}
+${libList}
+
+Старайся не дублировать темы и педагогов одной недели. Если есть подходящая тема в библиотеке — используй её точное название.
+
+Верни JSON-массив объектов:
+[{"theme": "название темы", "teacher": "имя педагога", "rationale": "1-2 фразы почему подходит"}]`;
+
+  // Лоадинг
+  const oldHtml = document.getElementById('modal-content').innerHTML;
+  if (document.getElementById('modal-overlay').classList.contains('show')) {
+    openModal(`<h2>💡 ИИ подбирает тему…</h2><p><span class="loader"></span> Анализирую контекст недели…</p>`);
+  } else {
+    toast('💡 ИИ думает над темой…');
+  }
+
+  try {
+    const text = await callClaude(prompt);
+    let suggestions = [];
+    try {
+      const cleaned = text.trim().replace(/^```json\s*|\s*```$/g, '').replace(/^```\s*|\s*```$/g, '');
+      suggestions = JSON.parse(cleaned);
+    } catch(e) {
+      throw new Error('Не удалось распарсить ответ ИИ: ' + text.slice(0, 200));
+    }
+    if (!Array.isArray(suggestions) || !suggestions.length) {
+      throw new Error('ИИ не предложил вариантов');
+    }
+
+    const items = suggestions.map((s, idx) => `
+      <div class="lib-suggestion" onclick="applyAiSuggestion('${weekId}',${lIdx},${sIdx},${idx})">
+        <div class="name">${escapeHtml(s.theme || '—')}</div>
+        <div class="meta"><b>педагог:</b> ${escapeHtml(s.teacher || '?')}</div>
+        ${s.rationale ? `<div class="meta" style="margin-top:4px;font-style:italic">${escapeHtml(s.rationale)}</div>` : ''}
+      </div>
+    `).join('');
+    window._aiSuggestions = suggestions;
+    openModal(`
+      <h2>💡 ИИ предлагает</h2>
+      <p>${escapeHtml(state.locations[lIdx])} · ${escapeHtml(w.locations[lIdx].dateRange || '—')} · ${escapeHtml(slot.time)}</p>
+      ${items}
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="aiSuggestForSlot('${weekId}',${lIdx},${sIdx})">↻ ещё варианты</button>
+        <span style="flex:1"></span>
+        <button class="btn btn-primary" onclick="closeModal()">закрыть</button>
+      </div>
+    `);
+  } catch(e) {
+    toast('ИИ ошибся: ' + e.message, 'error');
+    console.error(e);
+    if (oldHtml && document.getElementById('modal-overlay').classList.contains('show')) {
+      document.getElementById('modal-content').innerHTML = oldHtml;
+    } else {
+      closeModal();
+    }
+  }
+}
+
+function applyAiSuggestion(weekId, lIdx, sIdx, idx) {
+  const sug = (window._aiSuggestions || [])[idx];
+  if (!sug) return;
+  pushUndo();
+  const w = findWeek(weekId); if (!w) return;
+  const slot = w.locations[lIdx].slots[sIdx];
+  slot.theme = sug.theme || slot.theme;
+  slot.teacher = sug.teacher || slot.teacher;
+  if (!slot.cost && state.defaultCost) slot.cost = String(state.defaultCost);
+  saveLocal();
+  closeModal();
+  render();
+  toast('Тема подставлена', 'success');
+}
+
+async function aiExpandDescription(weekId, lIdx, sIdx) {
+  const w = findWeek(weekId); if (!w) return;
+  const slot = w.locations[lIdx].slots[sIdx];
+  if (!slot.theme) {
+    toast('Сначала укажите тему', 'error');
+    return;
+  }
+  toast('✨ ИИ расширяет описание…');
+  const prompt = `Тема: ${slot.theme}
+Педагог: ${slot.teacher || '?'}
+Длительность: 5 дней по 2 часа (или 4-5 дней по более длинному занятию)
+Возраст: ${state.ages || '6-11 лет'}
+
+Напиши описание интенсива для родителей: что ребёнок узнает и сделает за неделю. 3-5 предложений простым языком, без штампов. Заверши конкретным результатом ("к концу недели сможет...").
+
+Верни JSON: {"description": "..."}`;
+  try {
+    const text = await callClaude(prompt);
+    const cleaned = text.trim().replace(/^```json\s*|\s*```$/g, '').replace(/^```\s*|\s*```$/g, '');
+    const obj = JSON.parse(cleaned);
+    if (!obj.description) throw new Error('Пустое описание');
+    pushUndo();
+    slot.description = obj.description;
+    saveLocal();
+    // Если модалка слота открыта — обновим textarea
+    const ta = document.getElementById('sm-desc');
+    if (ta) ta.value = obj.description;
+    toast('Описание готово', 'success');
+  } catch(e) {
+    toast('ИИ ошибся: ' + e.message, 'error');
+  }
+}
+
+async function aiFillEmpty() {
+  const empty = [];
+  state.weeks.forEach(w => w.locations.forEach((loc, lIdx) => loc.slots.forEach((s, sIdx) => {
+    if (!s.theme && !s.teacher) empty.push({ weekId: w.id, lIdx, sIdx });
+  })));
+  if (!empty.length) {
+    toast('Пустых слотов нет', 'success');
+    return;
+  }
+  if (!confirm(`ИИ заполнит ${empty.length} пустых слотов. Это может занять минуту. Продолжить?`)) return;
+
+  // Готовим компактный контекст по всему расписанию
+  const schedSummary = state.weeks.map(w => {
+    const lines = [];
+    w.locations.forEach((loc, lIdx) => {
+      loc.slots.forEach((s, sIdx) => {
+        if (s.theme || s.teacher) {
+          lines.push(`${state.locations[lIdx]} ${loc.dateRange || '?'} ${s.time}: ${s.theme || '?'} (${s.teacher || '?'})`);
+        }
+      });
+    });
+    return `[${w.marker || '—'}] ${lines.join(' | ') || '—'}`;
+  }).join('\n');
+
+  const emptyDescr = empty.map((e, i) => {
+    const w = findWeek(e.weekId);
+    const loc = w.locations[e.lIdx];
+    const slot = loc.slots[e.sIdx];
+    return `#${i}: ${state.locations[e.lIdx]} · ${loc.dateRange || '?'} · ${slot.time} · маркер «${w.marker || '—'}»`;
+  }).join('\n');
+
+  const libList = LIBRARY.length
+    ? '\nДОСТУПНЫЕ ТЕМЫ:\n' + LIBRARY.map(it => `- ${it.template || it.name} (${it.teacher || '?'})`).join('\n')
+    : '';
+
+  openModal(`<h2><span class="loader"></span> ИИ заполняет ${empty.length} слотов…</h2><p>Это занимает 30-60 сек. Не закрывайте вкладку.</p>`);
+
+  const prompt = `Текущее расписание (только заполненные слоты):
+${schedSummary}
+
+Нужно заполнить пустые слоты:
+${emptyDescr}
+${libList}
+
+Правила:
+- не дублируй педагога на одной неделе
+- старайся, чтобы темы соответствовали маркеру недели (если маркер «IT» — IT-темы; «Творческая» — творческие; «МНО» — научные/мир открытий; «Смешанная» — любые)
+- если в библиотеке есть подходящая тема — используй её точное название
+
+Верни JSON-массив длиной ${empty.length}, в том же порядке, что слоты выше:
+[{"theme": "...", "teacher": "...", "cost": "${state.defaultCost || ''}"}]`;
+
+  try {
+    const text = await callClaude(prompt);
+    const cleaned = text.trim().replace(/^```json\s*|\s*```$/g, '').replace(/^```\s*|\s*```$/g, '');
+    const arr = JSON.parse(cleaned);
+    if (!Array.isArray(arr)) throw new Error('Не массив');
+    pushUndo();
+    let filled = 0;
+    arr.forEach((sug, i) => {
+      if (i >= empty.length) return;
+      const e = empty[i];
+      const w = findWeek(e.weekId); if (!w) return;
+      const slot = w.locations[e.lIdx].slots[e.sIdx];
+      if (!slot) return;
+      if (sug.theme) slot.theme = sug.theme;
+      if (sug.teacher) slot.teacher = sug.teacher;
+      if (sug.cost) slot.cost = String(sug.cost);
+      else if (state.defaultCost) slot.cost = String(state.defaultCost);
+      filled++;
+    });
+    saveLocal();
+    closeModal();
+    render();
+    toast(`Заполнено ${filled} слотов`, 'success');
+  } catch(e) {
+    closeModal();
+    toast('ИИ ошибся: ' + e.message, 'error');
+    console.error(e);
+  }
+}
+
+// ============================================================
+// PUBLISH / DRAFTS
+// ============================================================
+function updatePubIndicator() {
+  const ind = document.getElementById('pub-ind');
+  const lbl = document.getElementById('pub-btn-label');
+  if (!state.publishId) {
+    ind.className = 'pub-indicator';
+    lbl.textContent = '🌐 опубликовать';
+  } else {
+    ind.className = 'pub-indicator dirty';
+    lbl.textContent = '🔄 обновить публикацию';
+  }
+}
+
+async function openPublishPanel() {
+  let pubs = [];
+  try {
+    const r = await fetch(LIBRARY_URL + '?action=listPublished&project=' + encodeURIComponent(PROJECT_TYPE));
+    const data = await r.json();
+    if (data.ok) pubs = data.versions || [];
+  } catch(e) { console.warn(e); }
+
+  const currentLink = state.publishId
+    ? `${location.origin}${location.pathname.replace('index.html','')}view.html?id=${encodeURIComponent(state.publishId)}`
+    : '';
+
+  let pubItems = '';
+  if (pubs.length) {
+    pubItems = `<div class="pub-list">` + pubs.map(p => {
+      const url = `${location.origin}${location.pathname.replace('index.html','')}view.html?id=${encodeURIComponent(p.id)}`;
+      const isCurrent = p.id === state.publishId;
+      return `
+        <div class="pub-item" style="${isCurrent?'border-color:var(--green-deep);background:var(--green-soft)':''}">
+          <div style="flex:1">
+            <div class="pub-name">${escapeHtml(p.name || p.title || '—')}</div>
+            <div class="pub-meta">${escapeHtml(p.updated || '')}${isCurrent ? ' · текущая' : ''}</div>
+          </div>
+          <button class="btn btn-sm" onclick="copyToClip('${escapeJs(url)}')">📋</button>
+          <a class="btn btn-sm" href="${url}" target="_blank">↗</a>
+          <button class="btn btn-sm" onclick="loadPublishedAndApply('${escapeJs(p.id)}')">📥</button>
+          <button class="btn btn-sm btn-danger" onclick="deletePublishedVersion('${escapeJs(p.id)}')">🗑</button>
+        </div>
+      `;
+    }).join('') + `</div>`;
+  }
+
+  openModal(`
+    <h2>🌐 Публикации</h2>
+    <p>Опубликовать сетку — получить ссылку для команды/родителей. Они увидят расписание в режиме просмотра.</p>
+
+    ${currentLink ? `
+      <label>Текущая ссылка</label>
+      <div style="display:flex;gap:6px;margin-bottom:14px">
+        <input type="text" value="${escapeHtml(currentLink)}" readonly style="font-size:12px">
+        <button class="btn btn-sm" onclick="copyToClip('${escapeJs(currentLink)}')">📋</button>
+        <a class="btn btn-sm" href="${currentLink}" target="_blank">↗</a>
+      </div>
+    ` : ''}
+
+    <label>Все публикации (${pubs.length})</label>
+    ${pubItems || '<p style="color:rgba(21,22,23,0.5);font-size:12px">пока нет публикаций</p>'}
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="newPublication()">🆕 новая публикация</button>
+      <span style="flex:1"></span>
+      <button class="btn btn-ghost" onclick="closeModal()">закрыть</button>
+      <button class="btn btn-primary" onclick="publishNow()">${state.publishId ? '🔄 обновить' : '🌐 опубликовать'}</button>
+    </div>
+  `);
+}
+
+function newPublication() {
+  if (!confirm('Отвязать текущее состояние от публикации? Следующее «опубликовать» создаст новую запись.')) return;
+  state.publishId = null;
+  saveLocal();
+  closeModal();
+  toast('Отвязано. Опубликуйте, чтобы создать новую', 'success');
+}
+
+async function publishNow() {
+  if (!state.publishId) {
+    state.publishId = 'i_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+  }
+  const id = state.publishId;
+  const name = state.title || 'Интенсивы (без названия)';
+  const stateJson = JSON.stringify(state);
+  closeModal();
+  openModal(`<h2><span class="loader"></span> Публикую…</h2>`);
+  try {
+    await fetch(LIBRARY_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'publish',
+        project: PROJECT_TYPE,
+        id, name, stateJson
+      })
+    });
+    // Verify через GET
+    let verified = false;
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      await new Promise(r => setTimeout(r, 1500));
+      try {
+        const r = await fetch(LIBRARY_URL + '?action=getPublished&project=' + PROJECT_TYPE + '&id=' + encodeURIComponent(id) + '&_t=' + Date.now());
+        const data = await r.json();
+        if (data.ok && data.version) { verified = true; break; }
+      } catch(e) {}
+    }
+    saveLocal();
+    closeModal();
+    if (verified) {
+      const url = `${location.origin}${location.pathname.replace('index.html','')}view.html?id=${encodeURIComponent(id)}`;
+      toast('✓ Опубликовано', 'success');
+      // Показываем модалку со ссылкой
+      openModal(`
+        <h2>✓ Опубликовано</h2>
+        <p>Ссылку можно отправить педагогам/родителям:</p>
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <input type="text" value="${escapeHtml(url)}" readonly>
+          <button class="btn btn-sm" onclick="copyToClip('${escapeJs(url)}')">📋</button>
+          <a class="btn btn-sm" href="${url}" target="_blank">↗</a>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-primary" onclick="closeModal()">ок</button>
+        </div>
+      `);
+    } else {
+      toast('⚠ Опубликовано, но не удалось проверить — обновите страницу', 'error');
+    }
+  } catch(e) {
+    closeModal();
+    toast('Ошибка публикации: ' + e.message, 'error');
+  }
+  updatePubIndicator();
+}
+
+async function loadPublishedAndApply(id) {
+  if (!confirm('Загрузить эту публикацию в админку (текущее состояние заменится)? Текущее можно вернуть через ↶ отменить.')) return;
+  try {
+    const r = await fetch(LIBRARY_URL + '?action=getPublished&project=' + PROJECT_TYPE + '&id=' + encodeURIComponent(id) + '&_t=' + Date.now());
+    const data = await r.json();
+    if (!data.ok || !data.version) throw new Error(data.error || 'не найдено');
+    pushUndo();
+    state = JSON.parse(data.version.stateJson);
+    saveLocal();
+    closeModal();
+    render();
+    toast('Публикация загружена', 'success');
+  } catch(e) {
+    toast('Ошибка: ' + e.message, 'error');
+  }
+}
+
+async function deletePublishedVersion(id) {
+  if (!confirm('Удалить публикацию? Ссылка перестанет работать.')) return;
+  try {
+    await fetch(LIBRARY_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'unpublish', project: PROJECT_TYPE, id })
+    });
+    if (state.publishId === id) {
+      state.publishId = null;
+      saveLocal();
+    }
+    setTimeout(openPublishPanel, 800);
+    toast('Удалено', 'success');
+  } catch(e) {
+    toast('Ошибка: ' + e.message, 'error');
+  }
+}
+
+function copyToClip(s) {
+  navigator.clipboard.writeText(s).then(
+    () => toast('Скопировано', 'success'),
+    () => toast('Не удалось скопировать', 'error')
+  );
+}
+
+// ============================================================
+// DRAFTS
+// ============================================================
+async function openDraftsList() {
+  let drafts = [];
+  try {
+    const r = await fetch(LIBRARY_URL + '?action=listDrafts&project=' + PROJECT_TYPE);
+    const data = await r.json();
+    if (data.ok) drafts = data.drafts || [];
+  } catch(e) {}
+
+  const items = drafts.length ? drafts.map(d => `
+    <div class="pub-item">
+      <div style="flex:1">
+        <div class="pub-name">${escapeHtml(d.name || '—')}</div>
+        <div class="pub-meta">${escapeHtml(d.updated || '')}</div>
+      </div>
+      <button class="btn btn-sm" onclick="loadDraftAndApply('${escapeJs(d.id)}')">📂 открыть</button>
+      <button class="btn btn-sm btn-danger" onclick="deleteDraftItem('${escapeJs(d.id)}')">🗑</button>
+    </div>
+  `).join('') : '<p style="color:rgba(21,22,23,0.5);font-size:12px">пока нет черновиков</p>';
+
+  openModal(`
+    <h2>📁 Черновики</h2>
+    <p>Сохраняйте промежуточные состояния перед публикацией.</p>
+    <div class="pub-list">${items}</div>
+    <label>Сохранить текущее как черновик</label>
+    <input type="text" id="dr-name" placeholder="имя черновика" value="${escapeHtml(state._draftName || state.title || '')}">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">закрыть</button>
+      <button class="btn btn-primary" onclick="saveDraftNow()">💾 сохранить</button>
+    </div>
+  `);
+}
+
+async function saveDraftNow() {
+  const name = document.getElementById('dr-name').value.trim() || 'Без названия';
+  try {
+    const r = await fetch(LIBRARY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'saveDraft',
+        project: PROJECT_TYPE,
+        id: state._draftId || null,
+        name,
+        state
+      })
+    });
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'API error');
+    state._draftId = data.draft.id;
+    state._draftName = data.draft.name;
+    saveLocal();
+    closeModal();
+    toast('Черновик сохранён', 'success');
+  } catch(e) {
+    toast('Ошибка: ' + e.message, 'error');
+  }
+}
+
+async function loadDraftAndApply(id) {
+  if (!confirm('Загрузить черновик? Текущее состояние заменится (можно вернуть через ↶).')) return;
+  try {
+    const r = await fetch(LIBRARY_URL + '?action=loadDraft&project=' + PROJECT_TYPE + '&id=' + encodeURIComponent(id));
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'не найдено');
+    pushUndo();
+    state = data.draft.state;
+    state._draftId = data.draft.id;
+    state._draftName = data.draft.name;
+    saveLocal();
+    closeModal();
+    render();
+    toast('Черновик загружен', 'success');
+  } catch(e) {
+    toast('Ошибка: ' + e.message, 'error');
+  }
+}
+
+async function deleteDraftItem(id) {
+  if (!confirm('Удалить черновик?')) return;
+  try {
+    await fetch(LIBRARY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'deleteDraft', project: PROJECT_TYPE, id })
+    });
+    if (state._draftId === id) state._draftId = null;
+    saveLocal();
+    setTimeout(openDraftsList, 600);
+    toast('Удалено', 'success');
+  } catch(e) {
+    toast('Ошибка: ' + e.message, 'error');
+  }
+}
+
+// ============================================================
+// EXPORT / IMPORT JSON (бэкап)
+// ============================================================
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (state.title || 'intensive') + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Экспортировано', 'success');
+}
+
+function importJSONClick() {
+  document.getElementById('import-file').click();
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const obj = JSON.parse(e.target.result);
+      if (!obj || !obj.weeks) throw new Error('Не похоже на сетку интенсивов');
+      if (!confirm('Импортировать? Текущее состояние заменится.')) return;
+      pushUndo();
+      state = obj;
+      saveLocal();
+      render();
+      toast('Импортировано', 'success');
+    } catch(err) {
+      toast('Ошибка импорта: ' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ============================================================
+// INIT
+// ============================================================
+async function init() {
+  if (_initialized) return;
+  _initialized = true;
+
+  // Восстанавливаем имя редактора
+  try { _editorName = localStorage.getItem('intensive_editor_name') || ''; } catch(e) {}
+  _sessionId = 's_' + Math.random().toString(36).slice(2, 10);
+
+  // Поднимаем state из localStorage или дефолт
+  const cached = loadLocal();
+  if (cached && cached.weeks) {
+    state = cached;
+    // sanity defaults
+    if (!state.locations) state.locations = ['Локация 1', 'Локация 2', 'Локация 3'];
+    if (state.locations.length < 3) {
+      while (state.locations.length < 3) state.locations.push('Локация ' + (state.locations.length+1));
+    }
+    state.weeks.forEach(w => {
+      if (!w.id) w.id = 'w_' + Math.random().toString(36).slice(2, 9);
+      if (!w.locations) w.locations = [makeLocationData(), makeLocationData(), makeLocationData()];
+      while (w.locations.length < 3) w.locations.push(makeLocationData());
+      w.locations.forEach(loc => {
+        if (!loc.slots) loc.slots = [];
+      });
+    });
+  } else {
+    state = makeDefaultState();
+  }
+
+  render();
+
+  // Грузим библиотеку (не блокируем UI)
+  loadLibrary();
+
+  // Heartbeat при наличии publishId
+  if (state.publishId) {
+    startHeartbeat();
+  }
+}
+
+// ============================================================
+// HEARTBEAT (для конкурентного редактирования)
+// ============================================================
+function startHeartbeat() {
+  if (_heartbeatTimer) clearInterval(_heartbeatTimer);
+  if (_isReadOnly) return;
+  _heartbeatTimer = setInterval(() => {
+    if (!state || !state.publishId || !_sessionId) return;
+    try {
+      fetch(LIBRARY_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'heartbeat',
+          project: PROJECT_TYPE,
+          publishId: state.publishId,
+          sessionId: _sessionId,
+          editorName: _editorName || 'Аноним'
+        })
+      });
+    } catch(e) {}
+  }, SESSION_HEARTBEAT_MS);
+}
+
+// Старт
+init();
+</script>
