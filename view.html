@@ -173,9 +173,9 @@
 
   .slot-line {
     display: grid;
-    grid-template-columns: 70px 1fr 90px 50px;
+    grid-template-columns: 60px 1fr 90px 50px;
     gap: 8px;
-    align-items: start;
+    align-items: center;
     padding: 5px 8px;
     border-radius: 3px;
     background: var(--green);
@@ -187,10 +187,15 @@
   .slot-line .time { font-weight: 500; }
   .slot-line .theme { font-weight: 500; cursor: pointer; }
   .slot-line .theme:hover { text-decoration: underline; }
-  .slot-line .cost {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-    color: rgba(21,22,23,0.7);
+  .slot-line .cost-badge {
+    background: var(--white);
+    border: 1px solid var(--ink);
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
   }
 
   .empty-msg {
@@ -416,7 +421,7 @@ function renderViewCell(week, wIdx, loc, lIdx) {
           <span class="time">${escapeHtml(s.time || '')}</span>
           <span class="theme" ${hasDesc ? `onclick="showSlotDetails(${wIdx},${lIdx},${sIdx})"` : ''}>${escapeHtml(s.theme || '')}${hasDesc ? ' ⓘ' : ''}</span>
           <span class="teacher">${escapeHtml(s.teacher || '')}</span>
-          <span class="cost">${escapeHtml(cost)}</span>
+          <span class="cost-badge">${escapeHtml(cost) || '—'}</span>
         </div>
       `;
     });

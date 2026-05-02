@@ -301,12 +301,32 @@
     margin-top: 2px;
   }
 
+  /* Бейдж стоимости в углу слота */
+  .cost-badge {
+    background: var(--white);
+    border: 1px solid var(--ink);
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.4;
+    cursor: text;
+    white-space: nowrap;
+    min-width: 36px;
+    text-align: center;
+    outline: none;
+  }
+  .cost-badge:focus { background: var(--yellow-soft); }
+  .cost-badge:empty::before { content: '—р'; color: rgba(21,22,23,0.35); font-weight: 400; }
+
   /* Слоты времени */
   .slot {
     display: grid;
-    grid-template-columns: 70px 1fr 90px 36px;
+    grid-template-columns: 60px 1fr 80px 50px 30px;
     gap: 6px;
-    align-items: start;
+    align-items: center;
     padding: 5px 6px;
     border-radius: 3px;
     background: var(--green);
@@ -559,7 +579,7 @@
     .week-row { grid-template-columns: 1fr; }
     .location-cell { border-right: none; border-bottom: 1px solid rgba(21,22,23,0.1); }
     .locations-edit { grid-template-columns: 1fr; }
-    .slot { grid-template-columns: 60px 1fr 80px 32px; font-size: 11px; }
+    .slot { grid-template-columns: 50px 1fr 70px 44px 26px; font-size: 11px; }
   }
 </style>
 
@@ -970,7 +990,7 @@ function renderSlot(weekId, wIdx, lIdx, slot, sIdx) {
         <input class="time" value="${escapeHtml(slot.time)}" placeholder="11-13"
           onchange="setSlotField('${weekId}',${lIdx},${sIdx},'time',this.value)" title="время"
           onclick="event.stopPropagation()">
-        <span class="time-stub" style="grid-column: span 2; color: rgba(21,22,23,0.4); font-family: Inter, sans-serif; font-size: 12px; padding: 2px 0; cursor: pointer;">+ выбрать тему…</span>
+        <span class="time-stub" style="grid-column: span 3; color: rgba(21,22,23,0.4); font-family: Inter, sans-serif; font-size: 12px; padding: 2px 0; cursor: pointer;">+ выбрать тему…</span>
         <div class="slot-actions">
           <button class="slot-action" onclick="event.stopPropagation();openSlotMenu('${weekId}',${lIdx},${sIdx})" title="меню">⋯</button>
           <button class="slot-action" onclick="event.stopPropagation();removeSlot('${weekId}',${lIdx},${sIdx})" title="удалить">✕</button>
@@ -987,6 +1007,10 @@ function renderSlot(weekId, wIdx, lIdx, slot, sIdx) {
         onchange="setSlotField('${weekId}',${lIdx},${sIdx},'theme',this.value)">
       <input class="teacher" value="${escapeHtml(slot.teacher)}" placeholder="педагог"
         onchange="setSlotField('${weekId}',${lIdx},${sIdx},'teacher',this.value)" style="grid-column:auto">
+      <span class="cost-badge" contenteditable="true" title="стоимость, р"
+        onblur="setSlotCost('${weekId}',${lIdx},${sIdx},this.textContent)"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
+        >${escapeHtml(formatCost(slot.cost))}</span>
       <div class="slot-actions">
         <button class="slot-action" onclick="openSlotMenu('${weekId}',${lIdx},${sIdx})" title="меню">⋯</button>
         <button class="slot-action" onclick="removeSlot('${weekId}',${lIdx},${sIdx})" title="удалить">✕</button>
@@ -1065,6 +1089,32 @@ function setSlotField(weekId, lIdx, sIdx, field, val) {
   if (cell) {
     if (slot.theme || slot.teacher) cell.classList.remove('empty');
     else cell.classList.add('empty');
+  }
+}
+
+// Формат стоимости для отображения в бейдже: "40р", или "" если нет
+function formatCost(cost) {
+  if (cost === null || cost === undefined || cost === '') return '';
+  const num = String(cost).replace(/[^\d.]/g, '');
+  if (!num) return '';
+  return num + 'р';
+}
+
+// Сохранить стоимость из бейджа: парсим число из любой введённой строки
+function setSlotCost(weekId, lIdx, sIdx, raw) {
+  pushUndo();
+  const w = findWeek(weekId); if (!w) return;
+  const slot = w.locations[lIdx].slots[sIdx];
+  if (!slot) return;
+  // Извлекаем только цифры (поддерживаем "40", "40р", "40 руб")
+  const num = String(raw || '').replace(/[^\d.]/g, '');
+  slot.cost = num;
+  saveLocal();
+  // Обновляем сам бейдж — если ввели текст без цифр, очистим
+  const cell = document.querySelector(`[data-slot="${weekId}-${lIdx}-${sIdx}"]`);
+  if (cell) {
+    const badge = cell.querySelector('.cost-badge');
+    if (badge) badge.textContent = formatCost(slot.cost);
   }
 }
 
