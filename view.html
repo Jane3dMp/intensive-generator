@@ -164,7 +164,8 @@
     min-height: 80px;
   }
   .location-cell:last-child { border-right: none; }
-  .location-cell.empty { background: rgba(0,0,0,0.02); }
+  .location-cell.empty { background: rgba(0,0,0,0.015); }
+  .location-cell.empty.empty-row { background: transparent; min-height: 0; padding: 0; }
 
   .week-date {
     font-family: Geologica, sans-serif;
@@ -519,6 +520,12 @@ function render() {
   let lastMonth = null;
   let lastMarker = null;
   state.weeks.forEach((w, wIdx) => {
+    // Пропускаем неделю целиком, если ни в одной локации нет тем
+    const weekHasContent = w.locations.some(loc =>
+      loc.slots && loc.slots.some(s => s.theme || s.teacher)
+    );
+    if (!weekHasContent) return;
+
     if (w.month !== lastMonth) {
       html += `<div class="month-header">${escapeHtml(w.month || '—')}</div>`;
       lastMonth = w.month;
@@ -560,14 +567,14 @@ function applyMobileLocClass() {
 
 function renderViewCell(week, wIdx, loc, lIdx) {
   const hasContent = loc.slots && loc.slots.some(s => s.theme || s.teacher);
-  const fullyEmpty = !hasContent && !loc.dateRange && !loc.multiDayLabel;
-  let cls = 'location-cell';
-  if (!hasContent) cls += ' empty';
-  if (fullyEmpty) cls += ' empty-row';
-  let html = `<div class="${cls}" data-loc-idx="${lIdx}">`;
+  // Если в ячейке нет ни одной заполненной темы — рендерим пустой div (он держит сетку из 3 колонок)
+  if (!hasContent) {
+    return `<div class="location-cell empty empty-row" data-loc-idx="${lIdx}"></div>`;
+  }
+  let html = `<div class="location-cell" data-loc-idx="${lIdx}">`;
   // Дата
   if (loc.dateRange) {
-    html += `<div class="week-date ${!hasContent ? 'dim' : ''}">${escapeHtml(loc.dateRange)}</div>`;
+    html += `<div class="week-date">${escapeHtml(loc.dateRange)}</div>`;
   }
   // Многодневный банер
   if (loc.multiDayLabel) {
