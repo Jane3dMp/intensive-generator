@@ -414,6 +414,29 @@
   }
   .slot input.theme { font-weight: 500; }
   .slot input.cost { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* Обёртка темы + иконки ⓘ */
+  .theme-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+  .theme-wrap .theme { flex: 1; min-width: 0; }
+  .info-btn {
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    padding: 0 2px;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    color: rgba(42,42,40,0.25);
+    transition: color 0.15s, transform 0.15s;
+  }
+  .info-btn:hover { color: var(--ink); transform: scale(1.15); }
+  .info-btn.has-desc { color: rgba(42,42,40,0.7); }
+  .info-btn.has-desc:hover { color: var(--ink); }
   .slot-actions {
     display: flex;
     flex-direction: column;
@@ -1064,12 +1087,18 @@ function renderSlot(weekId, wIdx, lIdx, slot, sIdx) {
     `;
   }
   // Заполненный слот — обычные поля
+  const hasDesc = !!(slot.description && slot.description.trim());
   return `
     <div class="${cls}" data-slot="${weekId}-${lIdx}-${sIdx}">
       <input class="time" value="${escapeHtml(slot.time)}" placeholder="11-13"
         onchange="setSlotField('${weekId}',${lIdx},${sIdx},'time',this.value)" title="время">
-      <input class="theme" value="${escapeHtml(slot.theme)}" placeholder="тема занятия"
-        onchange="setSlotField('${weekId}',${lIdx},${sIdx},'theme',this.value)">
+      <span class="theme-wrap">
+        <input class="theme" value="${escapeHtml(slot.theme)}" placeholder="тема занятия"
+          onchange="setSlotField('${weekId}',${lIdx},${sIdx},'theme',this.value)">
+        <button class="info-btn ${hasDesc ? 'has-desc' : ''}"
+          onclick="showSlotProgram('${weekId}',${lIdx},${sIdx})"
+          title="${hasDesc ? 'программа интенсива' : 'добавить описание'}">ⓘ</button>
+      </span>
       <input class="teacher" value="${escapeHtml(slot.teacher)}" placeholder="педагог"
         onchange="setSlotField('${weekId}',${lIdx},${sIdx},'teacher',this.value)" style="grid-column:auto">
       <span class="cost-badge" contenteditable="true" title="стоимость, р"
@@ -1161,6 +1190,51 @@ function setSlotField(weekId, lIdx, sIdx, field, val) {
       else parentCell.classList.add('dim');
     }
   }
+}
+
+// Попап с программой интенсива (клик по иконке ⓘ)
+function showSlotProgram(weekId, lIdx, sIdx) {
+  const w = findWeek(weekId); if (!w) return;
+  const slot = w.locations[lIdx].slots[sIdx];
+  const locName = state.locations[lIdx];
+  const dateRange = w.locations[lIdx].dateRange;
+  const dirClass = directionToClass(slot.direction);
+  const dirLabel = slot.direction || '—';
+  const cost = slot.cost ? slot.cost + 'р' : '—';
+  const hasDesc = !!(slot.description && slot.description.trim());
+
+  // Преобразуем переносы строк в <br>, чтобы программа сохраняла структуру
+  const descHtml = hasDesc
+    ? escapeHtml(slot.description).replace(/\n/g, '<br>')
+    : '<em style="color:rgba(42,42,40,0.4)">Описание пока не добавлено. Используйте ✨ ИИ или впишите вручную через ⋯ меню.</em>';
+
+  openModal(`
+    <h2 style="margin-bottom:4px">${escapeHtml(slot.theme || '—')}</h2>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+      ${slot.direction ? `<span class="dir-chip ${dirClass}">${escapeHtml(dirLabel)}</span>` : ''}
+      <span style="font-family:Inter,sans-serif;font-size:12px;color:rgba(42,42,40,0.6)">
+        ${escapeHtml(locName)} · ${escapeHtml(dateRange || '—')} · ${escapeHtml(slot.time || '')}
+      </span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-family:Inter,sans-serif;font-size:13px;margin-bottom:14px">
+      <span style="color:rgba(42,42,40,0.55)">Педагог</span>
+      <span>${escapeHtml(slot.teacher || '—')}</span>
+      <span style="color:rgba(42,42,40,0.55)">Стоимость</span>
+      <span style="font-weight:500">${escapeHtml(cost)}</span>
+    </div>
+
+    <div style="border-top:1px solid rgba(42,42,40,0.1);padding-top:12px">
+      <div style="font-family:Inter,sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:8px">Программа интенсива</div>
+      <div style="font-family:Geologica,sans-serif;font-size:14px;line-height:1.55;color:var(--ink)">${descHtml}</div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">закрыть</button>
+      <button class="btn btn-ghost" onclick="aiExpandDescription('${weekId}',${lIdx},${sIdx})">✨ ${hasDesc ? 'переписать через ИИ' : 'сгенерировать'}</button>
+      <button class="btn btn-primary" onclick="closeModal();openSlotMenu('${weekId}',${lIdx},${sIdx})">✏ редактировать</button>
+    </div>
+  `);
 }
 
 // Маппинг направления (как пишут в библиотеке) → CSS-класс окрашивания слота
@@ -1782,9 +1856,14 @@ async function aiExpandDescription(weekId, lIdx, sIdx) {
     pushUndo();
     slot.description = obj.description;
     saveLocal();
+    render();  // обновим иконку ⓘ в сетке (она станет «has-desc»)
     // Если модалка слота открыта — обновим textarea
     const ta = document.getElementById('sm-desc');
     if (ta) ta.value = obj.description;
+    // Если открыта модалка программы — перезапустим, чтобы показать новое описание
+    if (document.getElementById('modal-overlay').classList.contains('show') && !ta) {
+      showSlotProgram(weekId, lIdx, sIdx);
+    }
     toast('Описание готово', 'success');
   } catch(e) {
     toast('ИИ ошибся: ' + e.message, 'error');

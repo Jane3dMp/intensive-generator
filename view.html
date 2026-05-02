@@ -199,8 +199,32 @@
   .slot-line.dir-mixed   { background: var(--dir-mixed-bg);    border-color: var(--dir-mixed-border); }
   .slot-line.empty { display: none; }
   .slot-line .time { font-weight: 500; }
-  .slot-line .theme { font-weight: 500; cursor: pointer; }
-  .slot-line .theme:hover { text-decoration: underline; }
+  .slot-line .theme-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+  .slot-line .theme {
+    font-weight: 500;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .slot-line .info-btn {
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    padding: 0 2px;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    color: rgba(42,42,40,0.55);
+    transition: color 0.15s, transform 0.15s;
+  }
+  .slot-line .info-btn:hover { color: var(--ink); transform: scale(1.15); }
   .slot-line .cost-badge {
     background: var(--white);
     border: 1px solid var(--ink);
@@ -440,12 +464,14 @@ function renderViewCell(week, wIdx, loc, lIdx) {
     loc.slots.forEach((s, sIdx) => {
       if (!s.theme && !s.teacher) return;
       const cost = s.cost ? s.cost + 'р' : '';
-      const hasDesc = !!(s.description && s.description.trim());
       const dirClass = directionToClass(s.direction);
       html += `
         <div class="slot-line ${dirClass}">
           <span class="time">${escapeHtml(s.time || '')}</span>
-          <span class="theme" ${hasDesc ? `onclick="showSlotDetails(${wIdx},${lIdx},${sIdx})"` : ''}>${escapeHtml(s.theme || '')}${hasDesc ? ' ⓘ' : ''}</span>
+          <span class="theme-wrap">
+            <span class="theme">${escapeHtml(s.theme || '')}</span>
+            <button class="info-btn" onclick="showSlotDetails(${wIdx},${lIdx},${sIdx})" title="программа интенсива">ⓘ</button>
+          </span>
           <span class="teacher">${escapeHtml(s.teacher || '')}</span>
           <span class="cost-badge">${escapeHtml(cost) || '—'}</span>
         </div>
@@ -463,15 +489,34 @@ function showSlotDetails(wIdx, lIdx, sIdx) {
   const loc = w.locations[lIdx]; if (!loc) return;
   const s = loc.slots[sIdx]; if (!s) return;
   const locName = state.locations[lIdx];
+  const dirClass = directionToClass(s.direction);
+  const cost = s.cost ? s.cost + 'р' : '—';
+  const descHtml = (s.description && s.description.trim())
+    ? escapeHtml(s.description).replace(/\n/g, '<br>')
+    : '<em style="color:rgba(42,42,40,0.4)">Программа уточняется</em>';
+
   document.getElementById('modal-content').innerHTML = `
-    <h2>${escapeHtml(s.theme || '—')}</h2>
-    <div class="meta">
-      ${escapeHtml(locName)} · ${escapeHtml(loc.dateRange || '')} · ${escapeHtml(s.time || '')}<br>
-      Педагог: ${escapeHtml(s.teacher || '—')}
-      ${s.cost ? ' · Стоимость: ' + escapeHtml(s.cost) + 'р' : ''}
+    <h2 style="margin-bottom:4px">${escapeHtml(s.theme || '—')}</h2>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+      ${s.direction ? `<span class="dir-chip ${dirClass}" style="display:inline-block;padding:2px 8px;border-radius:10px;font-family:Inter,sans-serif;font-size:10px;font-weight:500">${escapeHtml(s.direction)}</span>` : ''}
+      <span style="font-family:Inter,sans-serif;font-size:12px;color:rgba(42,42,40,0.6)">
+        ${escapeHtml(locName)} · ${escapeHtml(loc.dateRange || '')} · ${escapeHtml(s.time || '')}
+      </span>
     </div>
-    ${s.description ? `<p>${escapeHtml(s.description).replace(/\n/g, '<br>')}</p>` : ''}
-    <button class="modal-close" onclick="closeModal()">закрыть</button>
+
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-family:Inter,sans-serif;font-size:13px;margin-bottom:14px">
+      <span style="color:rgba(42,42,40,0.55)">Педагог</span>
+      <span>${escapeHtml(s.teacher || '—')}</span>
+      <span style="color:rgba(42,42,40,0.55)">Стоимость</span>
+      <span style="font-weight:500">${escapeHtml(cost)}</span>
+    </div>
+
+    <div style="border-top:1px solid rgba(42,42,40,0.1);padding-top:12px">
+      <div style="font-family:Inter,sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:8px">Программа интенсива</div>
+      <div style="font-family:Geologica,sans-serif;font-size:14px;line-height:1.55;color:var(--ink)">${descHtml}</div>
+    </div>
+
+    <button class="modal-close" onclick="closeModal()" style="margin-top:16px">закрыть</button>
   `;
   document.getElementById('modal-overlay').classList.add('show');
 }
