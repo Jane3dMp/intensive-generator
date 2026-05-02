@@ -7,17 +7,32 @@
 <link href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&family=Caveat:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --ink: #151617;
-    --paper: #F5F5F0;
-    --paper-warm: #FFFDF5;
-    --paper-deep: #ECECE5;
-    --yellow: #FED634;
-    --yellow-deep: #E8C200;
-    --green: #7ED957;
-    --green-deep: #5FB835;
-    --orange-soft: #FFE4B5;
+    --ink: #2A2A28;
+    --ink-soft: #545452;
+    --paper: #F7F3EA;
+    --paper-warm: #FBF7EE;
+    --paper-deep: #EDE7DA;
+    --yellow: #F5DC8A;
+    --yellow-deep: #DEC162;
+    --orange-soft: #F3DEB7;
     --white: #FFFFFF;
-    --shadow: rgba(21,22,23,0.08);
+    --shadow: rgba(42,42,40,0.06);
+
+    --dir-it-bg: #C9E5F0;
+    --dir-it-border: #92BFD0;
+    --dir-soft-bg: #C9E4CB;
+    --dir-soft-border: #91BD93;
+    --dir-creative-bg: #F2E1A8;
+    --dir-creative-border: #C8B16D;
+    --dir-mno-bg: #E8C9D3;
+    --dir-mno-border: #BD8B9C;
+    --dir-mixed-bg: #DDD7C8;
+    --dir-mixed-border: #ACA48F;
+    --dir-default-bg: #DCEBE4;
+    --dir-default-border: #95B6A4;
+
+    --green: var(--dir-default-bg);
+    --green-deep: var(--dir-default-border);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -116,14 +131,8 @@
   .marker-header {
     background: var(--paper-deep);
     border-bottom: 1px solid var(--ink);
-    padding: 6px 14px;
-    font-family: Inter, sans-serif;
-    font-weight: 600;
-    font-size: 13px;
-    text-align: center;
-    color: rgba(21,22,23,0.7);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    padding: 4px 14px;
+    height: 8px;
   }
   .marker-header.empty { display: none; }
 
@@ -178,11 +187,16 @@
     align-items: center;
     padding: 5px 8px;
     border-radius: 3px;
-    background: var(--green);
-    border: 1px solid var(--green-deep);
+    background: var(--dir-default-bg);
+    border: 1px solid var(--dir-default-border);
     font-family: Inter, sans-serif;
     font-size: 12px;
   }
+  .slot-line.dir-it      { background: var(--dir-it-bg);       border-color: var(--dir-it-border); }
+  .slot-line.dir-soft    { background: var(--dir-soft-bg);     border-color: var(--dir-soft-border); }
+  .slot-line.dir-creative{ background: var(--dir-creative-bg); border-color: var(--dir-creative-border); }
+  .slot-line.dir-mno     { background: var(--dir-mno-bg);      border-color: var(--dir-mno-border); }
+  .slot-line.dir-mixed   { background: var(--dir-mixed-bg);    border-color: var(--dir-mixed-border); }
   .slot-line.empty { display: none; }
   .slot-line .time { font-weight: 500; }
   .slot-line .theme { font-weight: 500; cursor: pointer; }
@@ -338,6 +352,17 @@ async function loadPublication(id) {
   return JSON.parse(data.version.stateJson);
 }
 
+function directionToClass(dir) {
+  if (!dir) return '';
+  const d = String(dir).toLowerCase().trim();
+  if (d.includes('it') || d.includes('айт')) return 'dir-it';
+  if (d.includes('soft') || d.includes('софт') || d.includes('навык')) return 'dir-soft';
+  if (d.includes('твор') || d.includes('арт') || d.includes('art')) return 'dir-creative';
+  if (d.includes('мно') || d.includes('наук') || d.includes('научн')) return 'dir-mno';
+  if (d.includes('смеш') || d.includes('mixed')) return 'dir-mixed';
+  return '';
+}
+
 async function init() {
   const id = getId();
   if (!id) {
@@ -382,10 +407,10 @@ function render() {
       lastMonth = w.month;
       lastMarker = null;
     }
-    // Маркер показываем только если он непустой и отличается от предыдущего
+    // Маркер показываем как тонкий серый разделитель без текста
     const showMarker = w.marker && w.marker !== lastMarker;
     if (showMarker) {
-      html += `<div class="marker-header">${escapeHtml(w.marker)}</div>`;
+      html += `<div class="marker-header">&nbsp;</div>`;
       lastMarker = w.marker;
     }
     html += `<div class="week-row">`;
@@ -416,8 +441,9 @@ function renderViewCell(week, wIdx, loc, lIdx) {
       if (!s.theme && !s.teacher) return;
       const cost = s.cost ? s.cost + 'р' : '';
       const hasDesc = !!(s.description && s.description.trim());
+      const dirClass = directionToClass(s.direction);
       html += `
-        <div class="slot-line">
+        <div class="slot-line ${dirClass}">
           <span class="time">${escapeHtml(s.time || '')}</span>
           <span class="theme" ${hasDesc ? `onclick="showSlotDetails(${wIdx},${lIdx},${sIdx})"` : ''}>${escapeHtml(s.theme || '')}${hasDesc ? ' ⓘ' : ''}</span>
           <span class="teacher">${escapeHtml(s.teacher || '')}</span>

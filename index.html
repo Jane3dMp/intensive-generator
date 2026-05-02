@@ -7,23 +7,41 @@
 <link href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&family=Caveat:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --ink: #151617;
-    --paper: #F5F5F0;
-    --paper-warm: #FFFDF5;
-    --paper-deep: #ECECE5;
-    --yellow: #FED634;
-    --yellow-deep: #E8C200;
-    --yellow-soft: #FFF6CC;
-    --green: #7ED957;
-    --green-deep: #5FB835;
-    --green-soft: #C8F0B6;
-    --orange-soft: #FFE4B5;
+    --ink: #2A2A28;
+    --ink-soft: #545452;
+    --paper: #F7F3EA;
+    --paper-warm: #FBF7EE;
+    --paper-deep: #EDE7DA;
+    --paper-muted: #E5DECF;
+    --yellow: #F5DC8A;
+    --yellow-deep: #DEC162;
+    --yellow-soft: #FBF1D2;
+    --orange-soft: #F3DEB7;
     --white: #FFFFFF;
-    --sky: #41BEEA;
-    --sky-deep: #3495B8;
-    --sky-soft: #EBF4FE;
-    --shadow: rgba(21,22,23,0.08);
-    --danger: #c0392b;
+    --shadow: rgba(42,42,40,0.06);
+    --danger: #B86060;
+
+    /* Цвета направлений (пастельные) */
+    --dir-it-bg: #C9E5F0;          /* IT — мятно-голубой */
+    --dir-it-border: #92BFD0;
+    --dir-soft-bg: #C9E4CB;         /* Soft — мягкий зелёный */
+    --dir-soft-border: #91BD93;
+    --dir-creative-bg: #F2E1A8;    /* Творчество — пастельный жёлтый */
+    --dir-creative-border: #C8B16D;
+    --dir-mno-bg: #E8C9D3;          /* МНО — нежно-розовый */
+    --dir-mno-border: #BD8B9C;
+    --dir-mixed-bg: #DDD7C8;        /* Смешанная — тёплый серо-бежевый */
+    --dir-mixed-border: #ACA48F;
+    --dir-default-bg: #DCEBE4;     /* по умолчанию (без направления) */
+    --dir-default-border: #95B6A4;
+
+    /* Алиасы для обратной совместимости */
+    --green: var(--dir-default-bg);
+    --green-deep: var(--dir-default-border);
+    --green-soft: #E8F1EB;
+    --sky: var(--dir-it-bg);
+    --sky-deep: var(--dir-it-border);
+    --sky-soft: #E8F2F7;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -80,6 +98,29 @@
     color: rgba(21,22,23,0.6);
     margin-top: 6px;
   }
+
+  .dir-legend {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .dir-chip {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-family: Inter, sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    background: var(--dir-default-bg);
+    border: 1px solid var(--dir-default-border);
+    color: var(--ink);
+  }
+  .dir-chip.dir-it      { background: var(--dir-it-bg);       border-color: var(--dir-it-border); }
+  .dir-chip.dir-soft    { background: var(--dir-soft-bg);     border-color: var(--dir-soft-border); }
+  .dir-chip.dir-creative{ background: var(--dir-creative-bg); border-color: var(--dir-creative-border); }
+  .dir-chip.dir-mno     { background: var(--dir-mno-bg);      border-color: var(--dir-mno-border); }
+  .dir-chip.dir-mixed   { background: var(--dir-mixed-bg);    border-color: var(--dir-mixed-border); }
 
   /* Кнопки */
   .btn {
@@ -329,19 +370,31 @@
     align-items: center;
     padding: 5px 6px;
     border-radius: 3px;
-    background: var(--green);
-    border: 1px solid var(--green-deep);
+    background: var(--dir-default-bg);
+    border: 1px solid var(--dir-default-border);
     cursor: text;
-    transition: background 0.15s;
+    transition: background 0.2s, border-color 0.2s;
   }
+  /* Слоты по направлениям */
+  .slot.dir-it      { background: var(--dir-it-bg);       border-color: var(--dir-it-border); }
+  .slot.dir-soft    { background: var(--dir-soft-bg);     border-color: var(--dir-soft-border); }
+  .slot.dir-creative{ background: var(--dir-creative-bg); border-color: var(--dir-creative-border); }
+  .slot.dir-mno     { background: var(--dir-mno-bg);      border-color: var(--dir-mno-border); }
+  .slot.dir-mixed   { background: var(--dir-mixed-bg);    border-color: var(--dir-mixed-border); }
   .slot.empty {
     background: transparent;
-    border: 1px dashed rgba(21,22,23,0.2);
+    border: 1px dashed rgba(21,22,23,0.15);
+    opacity: 0.55;
+    transition: opacity 0.2s;
   }
   .slot.empty:hover {
     background: rgba(126,217,87,0.15);
     border-color: var(--green-deep);
+    opacity: 1;
   }
+  /* Локационная ячейка целиком тоже бледнеет, если в ней нет ни одной заполненной темы */
+  .location-cell.dim { opacity: 0.45; transition: opacity 0.2s; }
+  .location-cell.dim:hover { opacity: 1; }
   .slot input {
     background: transparent;
     border: none;
@@ -588,6 +641,13 @@
     <div class="eyebrow">Прознание + Coddy · интенсивы</div>
     <h1>Сетка <em>интенсивов</em></h1>
     <div class="subtitle" id="status-line">Загружаю библиотеку…</div>
+    <div class="dir-legend">
+      <span class="dir-chip dir-it">IT</span>
+      <span class="dir-chip dir-soft">Soft skills</span>
+      <span class="dir-chip dir-creative">Творчество</span>
+      <span class="dir-chip dir-mno">МНО</span>
+      <span class="dir-chip dir-mixed">Смешанная</span>
+    </div>
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <button class="btn btn-ghost" onclick="undoLast()" title="Ctrl+Z" id="btn-undo" disabled>↶ отменить</button>
@@ -694,6 +754,7 @@ function makeSlot(opts={}) {
     theme: opts.theme || '',
     teacher: opts.teacher || '',
     cost: opts.cost || '',
+    direction: opts.direction || '',  // IT / Soft / Творчество / МНО / Смешанная — для окраски
     color: opts.color || 'green',  // 'green' (норма) | '' (без цвета)
     description: opts.description || '',  // расширенное описание (через ИИ)
     template: opts.template || '',  // имя шаблона из библиотеки если использован
@@ -953,7 +1014,10 @@ function renderSchedule() {
 
 function renderLocationCell(week, wIdx, loc, lIdx) {
   const dateClass = loc.dateRange ? 'week-date' : 'week-date empty';
-  let html = `<div class="location-cell">`;
+  // Затемняем ячейку, если в ней нет ни одной заполненной темы
+  const hasFilled = loc.slots.some(s => s.theme || s.teacher);
+  const cellClass = hasFilled ? 'location-cell' : 'location-cell dim';
+  let html = `<div class="${cellClass}">`;
   html += `<div class="${dateClass}">
     <input type="text" value="${escapeHtml(loc.dateRange || '')}"
       placeholder="—дата—"
@@ -981,7 +1045,8 @@ function renderLocationCell(week, wIdx, loc, lIdx) {
 
 function renderSlot(weekId, wIdx, lIdx, slot, sIdx) {
   const isEmpty = !(slot.theme || slot.teacher);
-  const cls = isEmpty ? 'slot empty' : 'slot';
+  const dirClass = directionToClass(slot.direction);
+  const cls = isEmpty ? 'slot empty' : ('slot ' + dirClass).trim();
   if (isEmpty) {
     // Пустой слот — клик по нему открывает меню «откуда взять тему»
     return `
@@ -1082,14 +1147,32 @@ function setSlotField(weekId, lIdx, sIdx, field, val) {
   const slot = w.locations[lIdx].slots[sIdx];
   if (!slot) return;
   slot[field] = val;
-  // Если что-то ввели в пустой слот — переключаем визуально
   saveLocal();
   // Лёгкий ре-рендер только этой ячейки чтобы обновить класс empty/нормальный
   const cell = document.querySelector(`[data-slot="${weekId}-${lIdx}-${sIdx}"]`);
   if (cell) {
     if (slot.theme || slot.teacher) cell.classList.remove('empty');
     else cell.classList.add('empty');
+    // И затемнение всей ячейки локации (если в ней появилась/исчезла тема)
+    const parentCell = cell.closest('.location-cell');
+    if (parentCell) {
+      const hasFilled = w.locations[lIdx].slots.some(s => s.theme || s.teacher);
+      if (hasFilled) parentCell.classList.remove('dim');
+      else parentCell.classList.add('dim');
+    }
   }
+}
+
+// Маппинг направления (как пишут в библиотеке) → CSS-класс окрашивания слота
+function directionToClass(dir) {
+  if (!dir) return '';
+  const d = String(dir).toLowerCase().trim();
+  if (d.includes('it') || d.includes('айт')) return 'dir-it';
+  if (d.includes('soft') || d.includes('софт') || d.includes('навык')) return 'dir-soft';
+  if (d.includes('твор') || d.includes('арт') || d.includes('art')) return 'dir-creative';
+  if (d.includes('мно') || d.includes('наук') || d.includes('научн')) return 'dir-mno';
+  if (d.includes('смеш') || d.includes('mixed')) return 'dir-mixed';
+  return '';
 }
 
 // Формат стоимости для отображения в бейдже: "40р", или "" если нет
@@ -1225,6 +1308,13 @@ function openSlotMenu(weekId, lIdx, sIdx) {
     <label>Педагог</label>
     <input type="text" id="sm-teacher" value="${escapeHtml(slot.teacher)}">
 
+    <label>Направление (определяет цвет)</label>
+    <select id="sm-direction">
+      ${['','IT','Soft skills','Творчество','МНО','Смешанная'].map(d =>
+        `<option value="${escapeHtml(d)}" ${(slot.direction||'')===d?'selected':''}>${d || '— без направления —'}</option>`
+      ).join('')}
+    </select>
+
     <label>Стоимость, р</label>
     <input type="number" id="sm-cost" value="${escapeHtml(slot.cost || '')}" placeholder="${state.defaultCost}">
 
@@ -1253,6 +1343,7 @@ function saveSlotMenu(weekId, lIdx, sIdx) {
   slot.time = document.getElementById('sm-time').value.trim();
   slot.theme = document.getElementById('sm-theme').value.trim();
   slot.teacher = document.getElementById('sm-teacher').value.trim();
+  slot.direction = document.getElementById('sm-direction').value.trim();
   slot.cost = document.getElementById('sm-cost').value.trim();
   slot.description = document.getElementById('sm-desc').value.trim();
   saveLocal();
@@ -1313,6 +1404,7 @@ function applyLibToSlot(weekId, lIdx, sIdx, libIdx) {
   slot.theme = item.template || item.name || '';
   slot.teacher = item.teacher || '';
   slot.template = item.template || '';
+  slot.direction = item.direction || '';
   if (!slot.cost && state.defaultCost) slot.cost = String(state.defaultCost);
   if (!slot.description && item.description) slot.description = item.description;
   saveLocal();
