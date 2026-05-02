@@ -626,7 +626,7 @@
 // ============================================================
 // URL Apps Script Web App. Подставьте свой после деплоя Code.gs.
 // До настройки можно работать с пустой библиотекой и localStorage.
-const LIBRARY_URL = 'https://script.google.com/macros/s/AKfycbzbsD_4-SLX2sdd8rhhJAwWYA5UJtaRZ42uwaI1Q1BgD67tHvMitclU5wSnqkn94t2F/exec';
+const LIBRARY_URL = 'https://script.google.com/macros/s/REPLACE_WITH_YOUR_DEPLOYMENT_URL/exec';
 
 // Тип проекта — отделяет данные интенсивов от лагерных в общем Apps Script
 const PROJECT_TYPE = 'intensive';
@@ -960,7 +960,25 @@ function renderLocationCell(week, wIdx, loc, lIdx) {
 }
 
 function renderSlot(weekId, wIdx, lIdx, slot, sIdx) {
-  const cls = (slot.theme || slot.teacher) ? 'slot' : 'slot empty';
+  const isEmpty = !(slot.theme || slot.teacher);
+  const cls = isEmpty ? 'slot empty' : 'slot';
+  if (isEmpty) {
+    // Пустой слот — клик по нему открывает меню «откуда взять тему»
+    return `
+      <div class="${cls}" data-slot="${weekId}-${lIdx}-${sIdx}"
+           onclick="if(event.target===this||event.target.classList.contains('time-stub'))openSlotPicker('${weekId}',${lIdx},${sIdx})">
+        <input class="time" value="${escapeHtml(slot.time)}" placeholder="11-13"
+          onchange="setSlotField('${weekId}',${lIdx},${sIdx},'time',this.value)" title="время"
+          onclick="event.stopPropagation()">
+        <span class="time-stub" style="grid-column: span 2; color: rgba(21,22,23,0.4); font-family: Inter, sans-serif; font-size: 12px; padding: 2px 0; cursor: pointer;">+ выбрать тему…</span>
+        <div class="slot-actions">
+          <button class="slot-action" onclick="event.stopPropagation();openSlotMenu('${weekId}',${lIdx},${sIdx})" title="меню">⋯</button>
+          <button class="slot-action" onclick="event.stopPropagation();removeSlot('${weekId}',${lIdx},${sIdx})" title="удалить">✕</button>
+        </div>
+      </div>
+    `;
+  }
+  // Заполненный слот — обычные поля
   return `
     <div class="${cls}" data-slot="${weekId}-${lIdx}-${sIdx}">
       <input class="time" value="${escapeHtml(slot.time)}" placeholder="11-13"
@@ -975,6 +993,35 @@ function renderSlot(weekId, wIdx, lIdx, slot, sIdx) {
       </div>
     </div>
   `;
+}
+
+// Меню при клике на пустой слот: библиотека / ИИ / вручную
+function openSlotPicker(weekId, lIdx, sIdx) {
+  const w = findWeek(weekId); if (!w) return;
+  const slot = w.locations[lIdx].slots[sIdx];
+  const locName = state.locations[lIdx];
+  const dateRange = w.locations[lIdx].dateRange;
+  openModal(`
+    <h2>Заполнить слот</h2>
+    <p>${escapeHtml(locName)} · ${escapeHtml(dateRange || '—')} · ${escapeHtml(slot.time)}</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px">
+      <button class="btn" style="text-align:left;padding:14px;font-size:14px" onclick="closeModal();openLibForSlot('${weekId}',${lIdx},${sIdx})">
+        📚 <b>Из библиотеки</b><br>
+        <span style="font-family:Inter,sans-serif;font-size:11px;color:rgba(21,22,23,0.55);font-weight:400">выбрать готовую тему из списка</span>
+      </button>
+      <button class="btn" style="text-align:left;padding:14px;font-size:14px" onclick="closeModal();aiSuggestForSlot('${weekId}',${lIdx},${sIdx})">
+        💡 <b>ИИ подобрать</b><br>
+        <span style="font-family:Inter,sans-serif;font-size:11px;color:rgba(21,22,23,0.55);font-weight:400">3-5 предложений с учётом маркера и других слотов недели</span>
+      </button>
+      <button class="btn" style="text-align:left;padding:14px;font-size:14px" onclick="closeModal();openSlotMenu('${weekId}',${lIdx},${sIdx})">
+        ✍ <b>Ввести вручную</b><br>
+        <span style="font-family:Inter,sans-serif;font-size:11px;color:rgba(21,22,23,0.55);font-weight:400">расширенная форма со всеми полями</span>
+      </button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">отмена</button>
+    </div>
+  `);
 }
 
 // ============================================================
@@ -1228,29 +1275,162 @@ function openLibraryPanel() {
   if (!LIBRARY.length) {
     openModal(`
       <h2>📚 Библиотека пуста</h2>
-      <p>Чтобы заполнить библиотеку — откройте Google Sheets вашего проекта и добавьте темы на лист «Активности» (project = <code>intensive</code>) со статусом «утверждено».</p>
-      <p>Структура колонок: <em>Статус | Шаблон занятия | Примеры тем | Педагог | Направление | Локация / кабинет | Возраст | Длительность (мин) | Формат | Описание</em></p>
-      <div class="modal-actions"><button class="btn btn-primary" onclick="closeModal()">понятно</button></div>
+      <p>Добавьте первую тему интенсива.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">закрыть</button>
+        <button class="btn btn-primary" onclick="openLibItemForm()">＋ добавить тему</button>
+      </div>
     `);
     return;
   }
-  const items = LIBRARY.map(it => `
-    <div class="lib-suggestion">
+  const items = LIBRARY.map((it, idx) => `
+    <div class="lib-suggestion" style="position:relative">
       <div class="name">${escapeHtml(it.template || it.name || '—')}</div>
       <div class="meta">${escapeHtml(it.teacher || '')}${it.direction ? ' · ' + escapeHtml(it.direction) : ''}${it.age ? ' · ' + escapeHtml(it.age) : ''}${it.duration ? ' · ' + it.duration + ' мин' : ''}</div>
       ${it.description ? `<div class="meta" style="margin-top:4px">${escapeHtml(it.description.slice(0,200))}${it.description.length>200?'…':''}</div>` : ''}
+      <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px">
+        <button class="btn btn-sm" onclick="event.stopPropagation();openLibItemForm(${idx})" title="править">✏</button>
+        <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deleteLibItem(${idx})" title="удалить">🗑</button>
+      </div>
     </div>
   `).join('');
   openModal(`
     <h2>📚 Библиотека интенсивов</h2>
-    <p>${LIBRARY.length} тем. Редактирование — в Google Sheets вашего проекта.</p>
+    <p>${LIBRARY.length} тем. Добавляйте, редактируйте и удаляйте прямо здесь.</p>
     <input type="text" id="lib-filter" placeholder="🔎 поиск" oninput="filterLibList(this.value)" style="width:100%;margin-bottom:10px">
     <div id="lib-list">${items}</div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="reloadLibrary()">↻ обновить</button>
-      <button class="btn btn-primary" onclick="closeModal()">закрыть</button>
+      <span style="flex:1"></span>
+      <button class="btn btn-primary" onclick="openLibItemForm()">＋ новая тема</button>
+      <button class="btn btn-ghost" onclick="closeModal()">закрыть</button>
     </div>
   `);
+}
+
+// Форма для добавления/правки темы. idx = индекс в LIBRARY (если правим), иначе undefined
+function openLibItemForm(idx) {
+  const isEdit = (idx !== undefined && LIBRARY[idx]);
+  const it = isEdit ? LIBRARY[idx] : {};
+  openModal(`
+    <h2>${isEdit ? '✏ Править тему' : '＋ Новая тема'}</h2>
+
+    <label>Название (шаблон занятия) *</label>
+    <input type="text" id="lib-template" value="${escapeHtml(it.template || '')}" placeholder="напр. Взросление.Девочки">
+
+    <label>Педагог *</label>
+    <input type="text" id="lib-teacher" value="${escapeHtml(it.teacher || '')}" placeholder="напр. Власова Юлия">
+
+    <label>Направление *</label>
+    <select id="lib-direction">
+      ${['','Soft skills','IT','Творчество','МНО','Смешанная','Спорт/активность'].map(d =>
+        `<option value="${escapeHtml(d)}" ${(it.direction||'')===d?'selected':''}>${d || '— выбрать —'}</option>`
+      ).join('')}
+    </select>
+
+    <label>Локация / кабинет</label>
+    <input type="text" id="lib-location" value="${escapeHtml(it.location || '')}" placeholder="напр. Пожарный 19">
+
+    <label>Возраст</label>
+    <input type="text" id="lib-age" value="${escapeHtml(it.age || '')}" placeholder="напр. 6–11 лет">
+
+    <label>Длительность (мин) *</label>
+    <input type="number" id="lib-duration" value="${escapeHtml(it.duration || 120)}" placeholder="120">
+
+    <label>Формат</label>
+    <input type="text" id="lib-format" value="${escapeHtml(it.format || 'интенсив')}" placeholder="интенсив">
+
+    <label>Примеры тем</label>
+    <input type="text" id="lib-examples" value="${escapeHtml(it.examples || '')}" placeholder="через запятую">
+
+    <label>Описание *</label>
+    <textarea id="lib-description" placeholder="Что ребёнок узнает и сделает за неделю — для родителей и для ИИ" style="min-height:90px">${escapeHtml(it.description || '')}</textarea>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">отмена</button>
+      <button class="btn btn-primary" onclick="saveLibItem(${isEdit ? idx : 'null'})">${isEdit ? 'сохранить' : 'добавить'}</button>
+    </div>
+  `);
+  setTimeout(() => {
+    const el = document.getElementById('lib-template');
+    if (el) el.focus();
+  }, 50);
+}
+
+async function saveLibItem(idx) {
+  const item = {
+    template: document.getElementById('lib-template').value.trim(),
+    teacher: document.getElementById('lib-teacher').value.trim(),
+    direction: document.getElementById('lib-direction').value.trim(),
+    location: document.getElementById('lib-location').value.trim(),
+    age: document.getElementById('lib-age').value.trim(),
+    duration: parseInt(document.getElementById('lib-duration').value) || 120,
+    format: document.getElementById('lib-format').value.trim() || 'интенсив',
+    examples: document.getElementById('lib-examples').value.trim(),
+    description: document.getElementById('lib-description').value.trim()
+  };
+  // Валидация обязательных полей
+  if (!item.template) { toast('Укажите название', 'error'); return; }
+  if (!item.teacher) { toast('Укажите педагога', 'error'); return; }
+  if (!item.direction) { toast('Выберите направление', 'error'); return; }
+  if (!item.description) { toast('Добавьте описание', 'error'); return; }
+
+  const isEdit = (idx !== null && idx !== undefined && LIBRARY[idx]);
+  const action = isEdit ? 'updateLibraryItem' : 'addLibraryItem';
+  const payload = { action, project: PROJECT_TYPE, item };
+  if (isEdit) payload.rowIdx = LIBRARY[idx].rowIdx;
+
+  // Лоадинг
+  openModal(`<h2><span class="loader"></span> ${isEdit ? 'Сохраняю…' : 'Добавляю…'}</h2>`);
+
+  try {
+    const r = await fetch(LIBRARY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'API error');
+
+    // Перезагружаем библиотеку из Sheets
+    await loadLibrary();
+    closeModal();
+    toast(isEdit ? 'Тема обновлена' : 'Тема добавлена', 'success');
+    // Открываем библиотеку обратно
+    openLibraryPanel();
+  } catch(e) {
+    closeModal();
+    toast('Ошибка: ' + e.message, 'error');
+  }
+}
+
+async function deleteLibItem(idx) {
+  const it = LIBRARY[idx];
+  if (!it) return;
+  if (!confirm(`Удалить тему «${it.template}»? Это не повлияет на уже опубликованные сетки.`)) return;
+
+  openModal(`<h2><span class="loader"></span> Удаляю…</h2>`);
+  try {
+    const r = await fetch(LIBRARY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'deleteLibraryItem',
+        project: PROJECT_TYPE,
+        rowIdx: it.rowIdx
+      })
+    });
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'API error');
+
+    await loadLibrary();
+    closeModal();
+    toast('Тема удалена', 'success');
+    openLibraryPanel();
+  } catch(e) {
+    closeModal();
+    toast('Ошибка: ' + e.message, 'error');
+  }
 }
 
 async function reloadLibrary() {
