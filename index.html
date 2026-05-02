@@ -225,6 +225,18 @@
     outline: 1px solid var(--ink);
     border-radius: 2px;
   }
+  .location-edit input.location-address {
+    margin-top: 2px;
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    font-style: italic;
+    color: rgba(42,42,40,0.65);
+  }
+  .location-edit input.location-address::placeholder {
+    color: rgba(42,42,40,0.3);
+    font-style: italic;
+  }
 
   /* Таблица недель */
   .schedule {
@@ -365,7 +377,7 @@
   /* Слоты времени */
   .slot {
     display: grid;
-    grid-template-columns: 60px 1fr 80px 50px 30px;
+    grid-template-columns: 84px 1fr 80px 50px 30px;
     gap: 6px;
     align-items: center;
     padding: 5px 6px;
@@ -414,6 +426,11 @@
   }
   .slot input.theme { font-weight: 500; }
   .slot input.cost { text-align: right; font-variant-numeric: tabular-nums; }
+  .slot input.time {
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
 
   /* Обёртка темы + иконки ⓘ */
   .theme-wrap {
@@ -650,12 +667,56 @@
   body.readonly-mode .config-bar input { pointer-events: none; opacity: 0.7; }
   body.readonly-mode .btn:not(.always-on) { opacity: 0.4; pointer-events: none; }
 
+  /* Мобильные вкладки локаций (видны только на узких экранах) */
+  .mobile-loc-tabs {
+    display: none;
+    gap: 6px;
+    margin-bottom: 12px;
+    background: var(--paper-deep);
+    border-radius: 6px;
+    padding: 4px;
+  }
+  .mobile-loc-tab {
+    flex: 1;
+    padding: 9px 6px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    font-family: Geologica, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    text-align: center;
+    line-height: 1.2;
+  }
+  .mobile-loc-tab.active {
+    background: var(--yellow);
+    color: var(--ink);
+    font-weight: 600;
+  }
+
   @media (max-width: 900px) {
     body { padding: 12px; }
     .week-row { grid-template-columns: 1fr; }
     .location-cell { border-right: none; border-bottom: 1px solid rgba(21,22,23,0.1); }
-    .locations-edit { grid-template-columns: 1fr; }
-    .slot { grid-template-columns: 50px 1fr 70px 44px 26px; font-size: 11px; }
+    .locations-edit { display: none; }     /* скрываем 3 жёлтых шапки */
+    .mobile-loc-tabs { display: flex; }     /* показываем вкладки */
+    .slot { grid-template-columns: 70px 1fr 60px 40px 24px; font-size: 11px; }
+
+    /* Скрываем не-выбранные локации */
+    body.mobile-loc-0 .location-cell[data-loc-idx="1"],
+    body.mobile-loc-0 .location-cell[data-loc-idx="2"] { display: none; }
+    body.mobile-loc-1 .location-cell[data-loc-idx="0"],
+    body.mobile-loc-1 .location-cell[data-loc-idx="2"] { display: none; }
+    body.mobile-loc-2 .location-cell[data-loc-idx="0"],
+    body.mobile-loc-2 .location-cell[data-loc-idx="1"] { display: none; }
+
+    /* Если в видимой ячейке нет ни одной заполненной темы И нет даты — спрячем целиком */
+    body.mobile-loc-0 .location-cell[data-loc-idx="0"].empty-row,
+    body.mobile-loc-1 .location-cell[data-loc-idx="1"].empty-row,
+    body.mobile-loc-2 .location-cell[data-loc-idx="2"].empty-row { display: none; }
   }
 </style>
 
@@ -680,6 +741,7 @@
       <span class="pub-indicator" id="pub-ind"></span>
       <span id="pub-btn-label">🌐 опубликовать</span>
     </button>
+    <button class="btn btn-ghost" onclick="logout()" title="выйти из админки" style="padding:6px 8px">🔒</button>
   </div>
 </div>
 
@@ -714,6 +776,8 @@
 </div>
 
 <div class="locations-edit" id="locations-edit"></div>
+
+<div class="mobile-loc-tabs" id="mobile-loc-tabs"></div>
 
 <div class="schedule" id="schedule"></div>
 
@@ -847,7 +911,8 @@ function makeDefaultState() {
     title: 'Интенсивы лето 2026',
     ages: '6–11 лет',
     defaultCost: 40,
-    locations: ['Пожарный 19', 'Пожарный 3Б (Детали)', 'Спутник'],
+    locations: ['Кластер', 'Детали', 'Спутник'],
+    locationAddresses: ['Пожарный 19', 'Пожарный 3Б-2', 'Якубовского 19'],
     weeks: weeks,
     publishId: null,
     _draftId: null,
@@ -995,8 +1060,44 @@ function renderLocations() {
   wrap.innerHTML = state.locations.map((name, i) => `
     <div class="location-edit">
       <input type="text" value="${escapeHtml(name)}" data-loc-idx="${i}" onchange="renameLocation(${i}, this.value)">
+      <input type="text" class="location-address" value="${escapeHtml((state.locationAddresses && state.locationAddresses[i]) || '')}"
+        placeholder="—адрес—" onchange="setLocationAddress(${i}, this.value)">
     </div>
   `).join('');
+  // Мобильные вкладки — те же названия, но как кнопки
+  const tabsWrap = document.getElementById('mobile-loc-tabs');
+  if (tabsWrap) {
+    tabsWrap.innerHTML = state.locations.map((name, i) => `
+      <button class="mobile-loc-tab ${i === _mobileLocIdx ? 'active' : ''}"
+        onclick="setMobileLoc(${i})">${escapeHtml(name)}</button>
+    `).join('');
+  }
+  // Применяем класс к body (на десктопе CSS его игнорирует)
+  applyMobileLocClass();
+}
+
+function setLocationAddress(idx, val) {
+  pushUndo();
+  if (!state.locationAddresses) state.locationAddresses = ['','',''];
+  state.locationAddresses[idx] = val;
+  saveLocal();
+}
+
+let _mobileLocIdx = 0;
+function setMobileLoc(idx) {
+  _mobileLocIdx = idx;
+  try { localStorage.setItem('intensive_mobile_loc', String(idx)); } catch(e) {}
+  applyMobileLocClass();
+  // Обновим только активную вкладку (без полного re-render)
+  document.querySelectorAll('.mobile-loc-tab').forEach((el, i) => {
+    if (i === idx) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+}
+
+function applyMobileLocClass() {
+  document.body.classList.remove('mobile-loc-0','mobile-loc-1','mobile-loc-2');
+  document.body.classList.add('mobile-loc-' + _mobileLocIdx);
 }
 
 function renameLocation(idx, name) {
@@ -1039,8 +1140,12 @@ function renderLocationCell(week, wIdx, loc, lIdx) {
   const dateClass = loc.dateRange ? 'week-date' : 'week-date empty';
   // Затемняем ячейку, если в ней нет ни одной заполненной темы
   const hasFilled = loc.slots.some(s => s.theme || s.teacher);
-  const cellClass = hasFilled ? 'location-cell' : 'location-cell dim';
-  let html = `<div class="${cellClass}">`;
+  // Полностью пустая (нет ни даты, ни тем) — для скрытия на мобиле
+  const fullyEmpty = !hasFilled && !loc.dateRange && !loc.multiDayLabel;
+  let cellClass = 'location-cell';
+  if (!hasFilled) cellClass += ' dim';
+  if (fullyEmpty) cellClass += ' empty-row';
+  let html = `<div class="${cellClass}" data-loc-idx="${lIdx}">`;
   html += `<div class="${dateClass}">
     <input type="text" value="${escapeHtml(loc.dateRange || '')}"
       placeholder="—дата—"
@@ -1213,7 +1318,7 @@ function showSlotProgram(weekId, lIdx, sIdx) {
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
       ${slot.direction ? `<span class="dir-chip ${dirClass}">${escapeHtml(dirLabel)}</span>` : ''}
       <span style="font-family:Inter,sans-serif;font-size:12px;color:rgba(42,42,40,0.6)">
-        ${escapeHtml(locName)} · ${escapeHtml(dateRange || '—')} · ${escapeHtml(slot.time || '')}
+        ${escapeHtml(locName)}${state.locationAddresses && state.locationAddresses[lIdx] ? ' (' + escapeHtml(state.locationAddresses[lIdx]) + ')' : ''} · ${escapeHtml(dateRange || '—')} · ${escapeHtml(slot.time || '')}
       </span>
     </div>
 
@@ -2274,12 +2379,75 @@ function importJSON(event) {
 // ============================================================
 // INIT
 // ============================================================
+// ============================================================
+// ЗАЩИТА ДОСТУПА ПАРОЛЕМ
+// ============================================================
+const ADMIN_PASSWORD = '19082026';
+const AUTH_LS_KEY = 'intensive_auth_ok';
+
+function checkAuth() {
+  // Если уже авторизован на этом устройстве — пропускаем
+  try {
+    if (localStorage.getItem(AUTH_LS_KEY) === ADMIN_PASSWORD) return true;
+  } catch(e) {}
+  return false;
+}
+
+function showLoginScreen() {
+  // Скрываем весь основной интерфейс
+  document.body.innerHTML = `
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;font-family:Geologica,system-ui,sans-serif">
+      <div style="background:var(--white,#fff);border:1px solid #2A2A28;border-radius:8px;padding:32px;max-width:380px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.1)">
+        <div style="font-family:Inter,sans-serif;font-size:11px;letter-spacing:0.25em;text-transform:uppercase;color:rgba(42,42,40,0.55);margin-bottom:6px">Прознание + Coddy · интенсивы</div>
+        <h1 style="font-size:24px;font-weight:500;margin-bottom:6px">🔒 Админка</h1>
+        <p style="font-family:Inter,sans-serif;font-size:13px;color:rgba(42,42,40,0.7);margin-bottom:18px">Введите пароль для доступа к редактированию</p>
+        <input type="password" id="auth-pw" placeholder="пароль"
+          style="width:100%;font-family:Geologica,sans-serif;font-size:16px;padding:10px 12px;border:1px solid rgba(42,42,40,0.25);border-radius:4px;background:#FBF7EE;outline:none;margin-bottom:12px"
+          onkeydown="if(event.key==='Enter')tryLogin()">
+        <button id="auth-btn" onclick="tryLogin()"
+          style="width:100%;font-family:Inter,sans-serif;font-size:14px;font-weight:500;padding:10px;background:#F5DC8A;border:1px solid #2A2A28;border-radius:4px;cursor:pointer">войти</button>
+        <div id="auth-err" style="font-family:Inter,sans-serif;font-size:12px;color:#B86060;margin-top:10px;min-height:16px;text-align:center"></div>
+      </div>
+    </div>
+  `;
+  setTimeout(() => document.getElementById('auth-pw').focus(), 100);
+}
+
+function tryLogin() {
+  const pw = document.getElementById('auth-pw').value;
+  const errEl = document.getElementById('auth-err');
+  if (pw === ADMIN_PASSWORD) {
+    try { localStorage.setItem(AUTH_LS_KEY, ADMIN_PASSWORD); } catch(e) {}
+    location.reload();
+  } else {
+    errEl.textContent = 'Неверный пароль';
+    document.getElementById('auth-pw').value = '';
+    document.getElementById('auth-pw').focus();
+  }
+}
+
+function logout() {
+  if (!confirm('Выйти из админки? Чтобы вернуться, нужно будет ввести пароль.')) return;
+  try { localStorage.removeItem(AUTH_LS_KEY); } catch(e) {}
+  location.reload();
+}
+
 async function init() {
   if (_initialized) return;
+  // Проверка пароля — если не авторизован, показываем экран входа и выходим
+  if (!checkAuth()) {
+    showLoginScreen();
+    return;
+  }
   _initialized = true;
 
   // Восстанавливаем имя редактора
   try { _editorName = localStorage.getItem('intensive_editor_name') || ''; } catch(e) {}
+  // Восстанавливаем выбранную мобильную локацию
+  try {
+    const saved = parseInt(localStorage.getItem('intensive_mobile_loc'));
+    if (!isNaN(saved) && saved >= 0 && saved < 3) _mobileLocIdx = saved;
+  } catch(e) {}
   _sessionId = 's_' + Math.random().toString(36).slice(2, 10);
 
   // Поднимаем state из localStorage или дефолт
@@ -2291,6 +2459,8 @@ async function init() {
     if (state.locations.length < 3) {
       while (state.locations.length < 3) state.locations.push('Локация ' + (state.locations.length+1));
     }
+    if (!state.locationAddresses) state.locationAddresses = ['', '', ''];
+    while (state.locationAddresses.length < 3) state.locationAddresses.push('');
     state.weeks.forEach(w => {
       if (!w.id) w.id = 'w_' + Math.random().toString(36).slice(2, 9);
       if (!w.locations) w.locations = [makeLocationData(), makeLocationData(), makeLocationData()];
