@@ -3522,24 +3522,38 @@ async function submitCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
   const lastDate = dates[dates.length-1];
   const isoDate = (d) => d.toISOString().slice(0, 10);
 
+  // Альфа лимитирует note 255 символами. Берём только тему и часть описания.
+  let note = 'Через Прознание+Coddy. ' + slot.theme;
+  if (slot.description) {
+    const desc = slot.description.replace(/\s+/g, ' ').trim();
+    const remain = 250 - note.length - 3;  // 3 на « ...»
+    if (remain > 30) note += ' ' + desc.substring(0, remain) + (desc.length > remain ? '…' : '');
+  }
+  if (note.length > 255) note = note.substring(0, 252) + '…';
+
+  // Альфа принимает даты в формате DD.MM.YYYY (русский формат)
+  const ruDate = (d) => {
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return dd + '.' + mm + '.' + yyyy;
+  };
+
   const groupPayload = {
     name: slot.theme,
-    note: 'Автоматически создано через Прознание+Coddy. Тема: ' + slot.theme +
-          (slot.description ? '\n\n' + slot.description : ''),
-    // В Альфе группа поддерживает массив педагогов и массив филиалов
+    note: note,
     teacher_ids: [parseInt(teacherId)],
     branch_ids: [ALFA_BRANCH_ID],
-    // Даты — ОДНО поле (не диапазон). Начало обучения = первый день, окончание = последний.
-    b_date: isoDate(firstDate),
-    e_date: isoDate(lastDate)
+    b_date: ruDate(firstDate),
+    e_date: ruDate(lastDate)
   };
   if (statusId) groupPayload.status_id = parseInt(statusId);
   if (levelId) groupPayload.level_id = parseInt(levelId);
 
   const lessons = dates.map(d => {
     const payload = {
-      date_from: isoDate(d),
-      date_to: isoDate(d),
+      // Альфа: одно поле lesson_date в формате DD.MM.YYYY
+      lesson_date: ruDate(d),
       time_from: time.from,
       time_to: time.to,
       duration: time.duration,
