@@ -1204,9 +1204,12 @@ function renderLocationCell(week, wIdx, loc, lIdx) {
       onchange="setLocDate('${week.id}', ${lIdx}, this.value)" style="background:transparent;border:none;width:100%;outline:none;font:inherit;color:inherit">
   </div>`;
 
-  // Многодневный банер
-  if (loc.multiDayLabel) {
-    html += `<div class="multi-day-banner" onclick="editMultiDay('${week.id}', ${lIdx})">${escapeHtml(loc.multiDayLabel)}</div>`;
+  // Многодневный банер: ручной → как есть, иначе автоматически из даты
+  const autoDays = calcDaysLabel(loc.dateRange);
+  const dayLabel = loc.multiDayLabel || autoDays;
+  if (dayLabel) {
+    const isAuto = !loc.multiDayLabel && autoDays;
+    html += `<div class="multi-day-banner" onclick="editMultiDay('${week.id}', ${lIdx})" title="${isAuto ? 'автоматически из даты — клик чтобы изменить' : 'клик чтобы изменить'}" style="${isAuto ? 'opacity:0.7;font-style:italic' : ''}">${escapeHtml(dayLabel)}</div>`;
   } else {
     html += `<button class="add-slot-btn" onclick="editMultiDay('${week.id}', ${lIdx})" style="font-size:10px;padding:2px 6px">+ длит.</button>`;
   }
@@ -1291,9 +1294,9 @@ function openSlotPicker(weekId, lIdx, sIdx) {
         📚 <b>Из библиотеки</b><br>
         <span style="font-family:Inter,sans-serif;font-size:11px;color:rgba(21,22,23,0.55);font-weight:400">выбрать готовую тему из списка</span>
       </button>
-      <button class="btn" style="text-align:left;padding:14px;font-size:14px" onclick="closeModal();aiSuggestForSlot('${weekId}',${lIdx},${sIdx})">
+      <button class="btn" style="text-align:left;padding:14px;font-size:14px" onclick="openAiSuggestForm('${weekId}',${lIdx},${sIdx})">
         💡 <b>ИИ подобрать</b><br>
-        <span style="font-family:Inter,sans-serif;font-size:11px;color:rgba(21,22,23,0.55);font-weight:400">3-5 предложений с учётом маркера и других слотов недели</span>
+        <span style="font-family:Inter,sans-serif;font-size:11px;color:rgba(21,22,23,0.55);font-weight:400">указать направление и подсказки → ИИ предложит варианты</span>
       </button>
       <button class="btn" style="text-align:left;padding:14px;font-size:14px" onclick="closeModal();openSlotMenu('${weekId}',${lIdx},${sIdx})">
         ✍ <b>Ввести вручную</b><br>
@@ -1304,6 +1307,49 @@ function openSlotPicker(weekId, lIdx, sIdx) {
       <button class="btn btn-ghost" onclick="closeModal()">отмена</button>
     </div>
   `);
+}
+
+// Промежуточная форма перед ИИ-подсказкой: направление + свободный текст-подсказка
+function openAiSuggestForm(weekId, lIdx, sIdx) {
+  const w = findWeek(weekId); if (!w) return;
+  const slot = w.locations[lIdx].slots[sIdx];
+  const locName = state.locations[lIdx];
+  const dateRange = w.locations[lIdx].dateRange;
+  // Если у слота уже есть направление — предзаполним
+  const curDir = slot.direction || '';
+  openModal(`
+    <h2>💡 ИИ: подобрать тему</h2>
+    <p style="font-family:Inter,sans-serif;font-size:12px;color:rgba(42,42,40,0.6);margin-bottom:14px">
+      ${escapeHtml(locName)} · ${escapeHtml(dateRange || '—')} · ${escapeHtml(slot.time || '')}${w.marker ? ' · маркер «' + escapeHtml(w.marker) + '»' : ''}
+    </p>
+
+    <label>Направление (по которому генерировать темы)</label>
+    <select id="ai-form-direction">
+      ${['','IT','Soft skills','Творчество','МНО','Смешанная'].map(d =>
+        `<option value="${escapeHtml(d)}" ${curDir===d?'selected':''}>${d || '— любое (по маркеру) —'}</option>`
+      ).join('')}
+    </select>
+
+    <label>Уточнение (необязательно)</label>
+    <textarea id="ai-form-hint" placeholder="например: «про роботов и ИИ для младших школьников», «творческое с лепкой», «без программирования»" style="min-height:60px"></textarea>
+    <p style="font-family:Inter,sans-serif;font-size:11px;color:rgba(42,42,40,0.5);margin-top:4px">свободный текст — что особенно важно учесть, какие интересы детей, чего избегать</p>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal();openSlotPicker('${weekId}',${lIdx},${sIdx})">← назад</button>
+      <span style="flex:1"></span>
+      <button class="btn btn-primary" onclick="runAiSuggestFromForm('${weekId}',${lIdx},${sIdx})">💡 подобрать</button>
+    </div>
+  `);
+  setTimeout(() => {
+    const el = document.getElementById('ai-form-hint');
+    if (el) el.focus();
+  }, 50);
+}
+
+function runAiSuggestFromForm(weekId, lIdx, sIdx) {
+  const direction = document.getElementById('ai-form-direction').value.trim();
+  const hint = document.getElementById('ai-form-hint').value.trim();
+  aiSuggestForSlot(weekId, lIdx, sIdx, { forceDirection: direction, userHint: hint });
 }
 
 // ============================================================
@@ -1424,6 +1470,30 @@ function showSlotProgram(weekId, lIdx, sIdx) {
   `);
 }
 
+// Считает количество дней по строке диапазона: "1 - 5 июня" → "5 дней", "29 - 3 июля" → "5 дней"
+function calcDaysLabel(dateRange) {
+  if (!dateRange) return '';
+  const nums = String(dateRange).match(/\d+/g);
+  if (!nums || nums.length < 2) return '';
+  const a = parseInt(nums[0]);
+  const b = parseInt(nums[1]);
+  if (isNaN(a) || isNaN(b)) return '';
+  let days;
+  if (b >= a) {
+    days = b - a + 1;
+  } else {
+    days = (30 - a + 1) + b;
+  }
+  if (days < 1 || days > 14) return '';
+  return days + ' ' + pluralizeDays(days);
+}
+
+function pluralizeDays(n) {
+  if (n % 10 === 1 && n % 100 !== 11) return 'день';
+  if ([2,3,4].includes(n % 10) && ![12,13,14].includes(n % 100)) return 'дня';
+  return 'дней';
+}
+
 // Маппинг направления (как пишут в библиотеке) → CSS-класс окрашивания слота
 function directionToClass(dir) {
   if (!dir) return '';
@@ -1520,11 +1590,13 @@ function removeSlot(weekId, lIdx, sIdx) {
 function editMultiDay(weekId, lIdx) {
   const w = findWeek(weekId); if (!w) return;
   const cur = w.locations[lIdx].multiDayLabel || '';
+  const dateRange = w.locations[lIdx].dateRange;
+  const auto = calcDaysLabel(dateRange);
   openModal(`
     <h2>Длительность интенсива</h2>
-    <p>Если интенсив идёт не всю неделю, а 4-5 дней с большим занятием — добавьте подпись (например: <em>«4 дня»</em>, <em>«5 дней»</em>) и измените слот времени на длинный (например <em>«10:30-13»</em>).</p>
-    <label>Подпись (оставьте пустой чтобы скрыть)</label>
-    <input type="text" id="md-input" value="${escapeHtml(cur)}" placeholder="4 дня">
+    <p>${auto ? `Сейчас автоматически считается из даты: <b>«${escapeHtml(auto)}»</b>. Если хотите подменить — впишите свою подпись.` : 'Если у недели нет даты в формате «1 - 5 июня», подпись надо ввести вручную.'}</p>
+    <label>Подпись (оставьте пустой → автомат)</label>
+    <input type="text" id="md-input" value="${escapeHtml(cur)}" placeholder="${escapeHtml(auto || '4 дня')}">
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">отмена</button>
       <button class="btn btn-primary" onclick="saveMultiDay('${weekId}',${lIdx})">сохранить</button>
@@ -2151,7 +2223,11 @@ async function aiSuggestThemes() {
   await aiSuggestForSlot(target.weekId, target.lIdx, target.sIdx);
 }
 
-async function aiSuggestForSlot(weekId, lIdx, sIdx) {
+async function aiSuggestForSlot(weekId, lIdx, sIdx, options) {
+  options = options || {};
+  const forceDirection = options.forceDirection || '';
+  const userHint = options.userHint || '';
+
   const w = findWeek(weekId); if (!w) return;
   const slot = w.locations[lIdx].slots[sIdx];
   const locName = state.locations[lIdx];
@@ -2172,6 +2248,16 @@ async function aiSuggestForSlot(weekId, lIdx, sIdx) {
     ? '\nДОСТУПНЫЕ ТЕМЫ ИЗ БИБЛИОТЕКИ:\n' + LIBRARY.map(it => `- ${it.template || it.name} (${it.teacher || '?'}, ${it.direction || '?'})`).join('\n')
     : '';
 
+  // Дополнительные инструкции от пользователя
+  const userInstructions = [];
+  if (forceDirection) {
+    userInstructions.push(`ОБЯЗАТЕЛЬНО: направление — «${forceDirection}». Все предложенные темы должны соответствовать этому направлению.`);
+  }
+  if (userHint) {
+    userInstructions.push(`ПОЖЕЛАНИЕ ПОЛЬЗОВАТЕЛЯ: ${userHint}`);
+  }
+  const userBlock = userInstructions.length ? '\n\n' + userInstructions.join('\n') + '\n' : '';
+
   const prompt = `Подбери 3-5 подходящих тем для слота интенсива.
 Локация: ${locName}
 Неделя: ${dateRange || '?'}
@@ -2181,12 +2267,12 @@ async function aiSuggestForSlot(weekId, lIdx, sIdx) {
 
 На той же неделе у других локаций уже стоят: ${sameWeekThemes.length ? sameWeekThemes.join('; ') : '—'}
 В целом по году используются: ${allThemes.length ? allThemes.slice(0, 30).join(', ') + (allThemes.length>30?'...':''): '—'}
-${libList}
+${libList}${userBlock}
 
 Старайся не дублировать темы и педагогов одной недели. Если есть подходящая тема в библиотеке — используй её точное название.
 
 Верни JSON-массив объектов:
-[{"theme": "название темы", "teacher": "имя педагога", "rationale": "1-2 фразы почему подходит"}]`;
+[{"theme": "название темы", "teacher": "имя педагога", "direction": "${forceDirection || 'IT/Soft skills/Творчество/МНО/Смешанная'}", "rationale": "1-2 фразы почему подходит"}]`;
 
   // Лоадинг
   const oldHtml = document.getElementById('modal-content').innerHTML;
@@ -2246,6 +2332,7 @@ function applyAiSuggestion(weekId, lIdx, sIdx, idx) {
   const slot = w.locations[lIdx].slots[sIdx];
   slot.theme = sug.theme || slot.theme;
   slot.teacher = sug.teacher || slot.teacher;
+  if (sug.direction) slot.direction = sug.direction;
   if (!slot.cost && state.defaultCost) slot.cost = String(state.defaultCost);
   saveLocal();
   closeModal();
