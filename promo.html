@@ -1,7 +1,7 @@
 <!-- Просмотр сетки интенсивов «Прознание + Coddy» -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Интенсивы — расписание</title>
+<title>Интенсивы — для продвижения</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&family=Caveat:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -215,6 +215,15 @@
   .slot-line.dir-mno     { background: var(--dir-mno-bg);      border-color: var(--dir-mno-border); }
   .slot-line.dir-mixed   { background: var(--dir-mixed-bg);    border-color: var(--dir-mixed-border); }
   .slot-line.empty { display: none; }
+
+  /* Резервные слоты — затемняем (видит только промо) */
+  .slot-line.is-reserve {
+    opacity: 0.45;
+    border-style: dashed;
+  }
+  .slot-line.is-reserve .program-btn {
+    background: rgba(42,42,40,0.45);
+  }
   .slot-line .time {
     grid-area: time;
     align-self: center;
@@ -558,13 +567,13 @@ function pluralizeDays(n) {
   return 'дней';
 }
 
-// В родительской публикации показываем только утверждённые слоты с темой.
-// Старые слоты без поля status считаем утверждёнными, чтобы не потерять прошлые публикации.
+// На странице продвижения показываем утверждённые + резерв (резерв затемнённый).
+// Старые слоты без поля status считаем утверждёнными.
 function slotIsVisible(s) {
   if (!s) return false;
   if (!s.theme && !s.teacher) return false;
   const status = s.status || 'approved';
-  return status === 'approved';
+  return status === 'approved' || status === 'reserve';
 }
 
 async function init() {
@@ -695,8 +704,10 @@ function renderViewCell(week, wIdx, loc, lIdx) {
       if (!slotIsVisible(s)) return;
       const cost = s.cost ? s.cost + 'р' : '';
       const dirClass = directionToClass(s.direction);
+      const isReserve = (s.status || 'approved') === 'reserve';
+      const reserveCls = isReserve ? 'is-reserve' : '';
       html += `
-        <div class="slot-line ${dirClass}">
+        <div class="slot-line ${dirClass} ${reserveCls}">
           <span class="time">${escapeHtml(s.time || '')}</span>
           <span class="theme">${escapeHtml(s.theme || '')}</span>
           <span class="teacher">${escapeHtml(s.teacher || '')}</span>

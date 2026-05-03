@@ -424,6 +424,23 @@
   .slot.filled .teacher { grid-area: teacher; font-size: 10px; font-style: italic; opacity: 0.75; padding: 0; }
   .slot.filled .cost-badge { grid-area: cost; align-self: center; }
   .slot.filled .slot-actions { grid-area: actions; }
+
+  /* Кружок-индикатор статуса в углу слота */
+  .status-dot {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+    box-shadow: 0 0 0 1.5px var(--white);
+  }
+  .status-dot.draft     { background: rgba(42,42,40,0.35); }
+  .status-dot.approved  { background: #5FB835; }
+  .status-dot.reserve   { background: #DEC162; }
+  .slot { position: relative; }
   /* Слоты по направлениям */
   .slot.dir-it      { background: var(--dir-it-bg);       border-color: var(--dir-it-border); }
   .slot.dir-soft    { background: var(--dir-soft-bg);     border-color: var(--dir-soft-border); }
@@ -886,6 +903,7 @@ function makeSlot(opts={}) {
     teacher: opts.teacher || '',
     cost: opts.cost || '',
     direction: opts.direction || '',  // IT / Soft / Творчество / МНО / Смешанная — для окраски
+    status: opts.status || 'draft',  // draft / approved / reserve
     color: opts.color || 'green',  // 'green' (норма) | '' (без цвета)
     description: opts.description || '',  // расширенное описание (через ИИ)
     template: opts.template || '',  // имя шаблона из библиотеки если использован
@@ -1253,8 +1271,10 @@ function renderSlot(weekId, wIdx, lIdx, slot, sIdx) {
   }
   // Заполненный слот — обычные поля
   const hasDesc = !!(slot.description && slot.description.trim());
+  const status = slot.status || 'draft';
   return `
     <div class="${cls}" data-slot="${weekId}-${lIdx}-${sIdx}">
+      <span class="status-dot ${status}" title="${status==='approved'?'утверждено':status==='reserve'?'в резерве':'черновик'}"></span>
       <input class="time" value="${escapeHtml(slot.time)}" placeholder="11-13"
         onchange="setSlotField('${weekId}',${lIdx},${sIdx},'time',this.value)" title="время">
       <span class="theme-wrap">
@@ -1758,6 +1778,13 @@ function openSlotMenu(weekId, lIdx, sIdx) {
       ).join('')}
     </select>
 
+    <label>Статус публикации</label>
+    <select id="sm-status">
+      <option value="draft" ${(slot.status||'draft')==='draft'?'selected':''}>⚪ Черновик — никто не видит</option>
+      <option value="approved" ${slot.status==='approved'?'selected':''}>🟢 Утверждено — видят все (родители + промо)</option>
+      <option value="reserve" ${slot.status==='reserve'?'selected':''}>🟡 В резерве — видит только промо</option>
+    </select>
+
     <label>Стоимость, р</label>
     <input type="number" id="sm-cost" value="${escapeHtml(slot.cost || '')}" placeholder="${state.defaultCost}">
 
@@ -1788,6 +1815,7 @@ function saveSlotMenu(weekId, lIdx, sIdx) {
   slot.theme = document.getElementById('sm-theme').value.trim();
   slot.teacher = document.getElementById('sm-teacher').value.trim();
   slot.direction = document.getElementById('sm-direction').value.trim();
+  slot.status = document.getElementById('sm-status').value || 'draft';
   slot.cost = document.getElementById('sm-cost').value.trim();
   slot.description = document.getElementById('sm-desc').value.trim();
   autoSortSlots(w.locations[lIdx]);
@@ -2483,14 +2511,19 @@ async function openPublishPanel() {
     if (data.ok) pubs = data.versions || [];
   } catch(e) { console.warn(e); }
 
+  const baseUrl = `${location.origin}${location.pathname.replace('index.html','')}`;
   const currentLink = state.publishId
-    ? `${location.origin}${location.pathname.replace('index.html','')}view.html?id=${encodeURIComponent(state.publishId)}`
+    ? `${baseUrl}view.html?id=${encodeURIComponent(state.publishId)}`
+    : '';
+  const currentPromoLink = state.publishId
+    ? `${baseUrl}promo.html?id=${encodeURIComponent(state.publishId)}`
     : '';
 
   let pubItems = '';
   if (pubs.length) {
     pubItems = `<div class="pub-list">` + pubs.map(p => {
-      const url = `${location.origin}${location.pathname.replace('index.html','')}view.html?id=${encodeURIComponent(p.id)}`;
+      const url = `${baseUrl}view.html?id=${encodeURIComponent(p.id)}`;
+      const promoUrl = `${baseUrl}promo.html?id=${encodeURIComponent(p.id)}`;
       const isCurrent = p.id === state.publishId;
       return `
         <div class="pub-item" style="${isCurrent?'border-color:var(--green-deep);background:var(--green-soft)':''}">
@@ -2498,9 +2531,11 @@ async function openPublishPanel() {
             <div class="pub-name">${escapeHtml(p.name || p.title || '—')}</div>
             <div class="pub-meta">${escapeHtml(p.updated || '')}${isCurrent ? ' · текущая' : ''}</div>
           </div>
-          <button class="btn btn-sm" onclick="copyToClip('${escapeJs(url)}')">📋</button>
-          <a class="btn btn-sm" href="${url}" target="_blank">↗</a>
-          <button class="btn btn-sm" onclick="loadPublishedAndApply('${escapeJs(p.id)}')">📥</button>
+          <button class="btn btn-sm" onclick="copyToClip('${escapeJs(url)}')" title="скопировать ссылку для родителей">📋</button>
+          <a class="btn btn-sm" href="${url}" target="_blank" title="открыть как родитель">↗</a>
+          <button class="btn btn-sm" onclick="copyToClip('${escapeJs(promoUrl)}')" title="скопировать ссылку для маркетинга">📋✨</button>
+          <a class="btn btn-sm" href="${promoUrl}" target="_blank" title="открыть как маркетолог">↗✨</a>
+          <button class="btn btn-sm" onclick="loadPublishedAndApply('${escapeJs(p.id)}')" title="загрузить в админку">📥</button>
           <button class="btn btn-sm btn-danger" onclick="deletePublishedVersion('${escapeJs(p.id)}')">🗑</button>
         </div>
       `;
@@ -2509,19 +2544,26 @@ async function openPublishPanel() {
 
   openModal(`
     <h2>🌐 Публикации</h2>
-    <p>Опубликовать сетку — получить ссылку для команды/родителей. Они увидят расписание в режиме просмотра.</p>
+    <p>Опубликовать сетку — получить две ссылки: для родителей (видят утверждённое) и для маркетинга (видят утверждённое + резерв).</p>
 
     ${currentLink ? `
-      <label>Текущая ссылка</label>
-      <div style="display:flex;gap:6px;margin-bottom:14px">
+      <label>Ссылка для родителей</label>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
         <input type="text" value="${escapeHtml(currentLink)}" readonly style="font-size:12px">
         <button class="btn btn-sm" onclick="copyToClip('${escapeJs(currentLink)}')">📋</button>
         <a class="btn btn-sm" href="${currentLink}" target="_blank">↗</a>
+      </div>
+      <label>Ссылка для маркетинга (включая резерв)</label>
+      <div style="display:flex;gap:6px;margin-bottom:14px">
+        <input type="text" value="${escapeHtml(currentPromoLink)}" readonly style="font-size:12px">
+        <button class="btn btn-sm" onclick="copyToClip('${escapeJs(currentPromoLink)}')">📋</button>
+        <a class="btn btn-sm" href="${currentPromoLink}" target="_blank">↗</a>
       </div>
     ` : ''}
 
     <label>Все публикации (${pubs.length})</label>
     ${pubItems || '<p style="color:rgba(21,22,23,0.5);font-size:12px">пока нет публикаций</p>'}
+    <p style="font-size:11px;color:rgba(42,42,40,0.5);margin-top:6px">📋 / ↗ — для родителей · 📋✨ / ↗✨ — для маркетинга</p>
 
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="newPublication()">🆕 новая публикация</button>
@@ -2573,16 +2615,23 @@ async function publishNow() {
     saveLocal();
     closeModal();
     if (verified) {
-      const url = `${location.origin}${location.pathname.replace('index.html','')}view.html?id=${encodeURIComponent(id)}`;
+      const baseUrl = `${location.origin}${location.pathname.replace('index.html','')}`;
+      const url = `${baseUrl}view.html?id=${encodeURIComponent(id)}`;
+      const promoUrl = `${baseUrl}promo.html?id=${encodeURIComponent(id)}`;
       toast('✓ Опубликовано', 'success');
-      // Показываем модалку со ссылкой
       openModal(`
         <h2>✓ Опубликовано</h2>
-        <p>Ссылку можно отправить педагогам/родителям:</p>
+        <label>Ссылка для родителей</label>
         <div style="display:flex;gap:6px;margin-bottom:10px">
           <input type="text" value="${escapeHtml(url)}" readonly>
           <button class="btn btn-sm" onclick="copyToClip('${escapeJs(url)}')">📋</button>
           <a class="btn btn-sm" href="${url}" target="_blank">↗</a>
+        </div>
+        <label>Ссылка для маркетинга (с резервом)</label>
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <input type="text" value="${escapeHtml(promoUrl)}" readonly>
+          <button class="btn btn-sm" onclick="copyToClip('${escapeJs(promoUrl)}')">📋</button>
+          <a class="btn btn-sm" href="${promoUrl}" target="_blank">↗</a>
         </div>
         <div class="modal-actions">
           <button class="btn btn-primary" onclick="closeModal()">ок</button>
@@ -2870,6 +2919,12 @@ async function init() {
       while (w.locations.length < 3) w.locations.push(makeLocationData());
       w.locations.forEach(loc => {
         if (!loc.slots) loc.slots = [];
+        // Миграция: слоты без status — старые, считаем утверждёнными если есть тема, иначе черновик
+        loc.slots.forEach(s => {
+          if (!s.status) {
+            s.status = (s.theme || s.teacher) ? 'approved' : 'draft';
+          }
+        });
         autoSortSlots(loc);
       });
     });
