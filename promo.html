@@ -794,28 +794,40 @@ function formatViberLink(v) {
   return 'viber://chat?number=' + encodeURIComponent(digits);
 }
 
+function formatTelegramLink(t) {
+  if (!t) return '';
+  const trimmed = String(t).trim();
+  if (trimmed.startsWith('http')) return trimmed;
+  const username = trimmed.replace(/^@/, '').replace(/\s+/g, '');
+  return 'https://t.me/' + username;
+}
+
 function renderContactsBlock(locDet) {
   if (!locDet) return '';
-  const phones = [locDet.phone1, locDet.phone2].filter(Boolean);
-  const vibers = [locDet.viber1, locDet.viber2].filter(Boolean);
-  if (!phones.length && !vibers.length) return '';
-  let rows = '';
-  phones.forEach(p => {
-    rows += `<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
-      <span style="color:rgba(42,42,40,0.55);font-size:11px;width:60px">телефон</span>
-      <a href="tel:${escapeHtml(p.replace(/[^\d+]/g, ''))}" style="color:var(--ink);text-decoration:none;font-weight:500">${escapeHtml(p)}</a>
-    </div>`;
-  });
-  vibers.forEach(v => {
-    rows += `<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
-      <span style="color:rgba(42,42,40,0.55);font-size:11px;width:60px">viber</span>
-      <a href="${escapeHtml(formatViberLink(v))}" style="color:var(--ink);text-decoration:none;font-weight:500">${escapeHtml(v)}</a>
-    </div>`;
-  });
+  const contacts = [
+    { phone: locDet.phone1, viber: locDet.viber1, tg: locDet.telegram1 },
+    { phone: locDet.phone2, viber: locDet.viber2, tg: locDet.telegram2 }
+  ].filter(c => c.phone || c.viber || c.tg);
+  if (!contacts.length) return '';
+  const rows = contacts.map(c => {
+    const phoneBtn = c.phone
+      ? `<a href="tel:${escapeHtml(c.phone.replace(/[^\d+]/g, ''))}" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--paper-deep);border-radius:6px;text-decoration:none;color:var(--ink);font-family:Inter,sans-serif;font-size:14px">
+          <span style="font-size:16px">📞</span>
+          <span style="font-weight:500">${escapeHtml(c.phone)}</span>
+        </a>`
+      : `<div style="flex:1"></div>`;
+    const viberBtn = c.viber
+      ? `<a href="${escapeHtml(formatViberLink(c.viber))}" title="Viber" style="display:flex;align-items:center;justify-content:center;padding:10px 14px;background:var(--paper-deep);border-radius:6px;text-decoration:none;font-size:18px">💬</a>`
+      : '';
+    const tgBtn = c.tg
+      ? `<a href="${escapeHtml(formatTelegramLink(c.tg))}" target="_blank" title="Telegram" style="display:flex;align-items:center;justify-content:center;padding:10px 14px;background:var(--paper-deep);border-radius:6px;text-decoration:none;font-size:18px">✈</a>`
+      : '';
+    return `<div style="display:flex;gap:6px;margin-bottom:6px">${phoneBtn}${viberBtn}${tgBtn}</div>`;
+  }).join('');
   return `
     <div style="border-top:1px solid rgba(42,42,40,0.1);padding-top:12px;margin-top:12px">
-      <div style="font-family:Inter,sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:6px">📞 Записаться</div>
-      <div style="font-family:Inter,sans-serif;font-size:13px">${rows}</div>
+      <div style="font-family:Inter,sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:8px">📞 Записаться</div>
+      ${rows}
     </div>
   `;
 }

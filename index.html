@@ -1189,17 +1189,25 @@ function openLocationSettings(idx) {
     <label>Размер группы (детей)</label>
     <input type="text" id="ls-group" value="${escapeHtml(det.groupSize || '')}" placeholder="напр. до 10 детей">
 
-    <label>Телефон 1</label>
-    <input type="text" id="ls-phone1" value="${escapeHtml(det.phone1 || '')}" placeholder="+375 29 ...">
+    <div style="margin-top:14px;padding:10px 12px;background:var(--paper-warm);border-radius:6px;border:1px solid rgba(42,42,40,0.1)">
+      <div style="font-family:Inter,sans-serif;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:8px">Контакт 1</div>
+      <label style="margin-top:0">Телефон</label>
+      <input type="text" id="ls-phone1" value="${escapeHtml(det.phone1 || '')}" placeholder="+375 29 ...">
+      <label>Viber (номер или ссылка)</label>
+      <input type="text" id="ls-viber1" value="${escapeHtml(det.viber1 || '')}" placeholder="+375 29 ... или viber://chat?number=...">
+      <label>Telegram (имя пользователя или ссылка)</label>
+      <input type="text" id="ls-tg1" value="${escapeHtml(det.telegram1 || '')}" placeholder="@username или https://t.me/username">
+    </div>
 
-    <label>Телефон 2</label>
-    <input type="text" id="ls-phone2" value="${escapeHtml(det.phone2 || '')}" placeholder="+375 33 ...">
-
-    <label>Viber 1 (ссылка или номер)</label>
-    <input type="text" id="ls-viber1" value="${escapeHtml(det.viber1 || '')}" placeholder="viber://chat?number=... или просто номер">
-
-    <label>Viber 2 (ссылка или номер)</label>
-    <input type="text" id="ls-viber2" value="${escapeHtml(det.viber2 || '')}" placeholder="viber://chat?number=... или просто номер">
+    <div style="margin-top:10px;padding:10px 12px;background:var(--paper-warm);border-radius:6px;border:1px solid rgba(42,42,40,0.1)">
+      <div style="font-family:Inter,sans-serif;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:8px">Контакт 2</div>
+      <label style="margin-top:0">Телефон</label>
+      <input type="text" id="ls-phone2" value="${escapeHtml(det.phone2 || '')}" placeholder="+375 33 ...">
+      <label>Viber</label>
+      <input type="text" id="ls-viber2" value="${escapeHtml(det.viber2 || '')}" placeholder="+375 33 ... или viber://chat?number=...">
+      <label>Telegram</label>
+      <input type="text" id="ls-tg2" value="${escapeHtml(det.telegram2 || '')}" placeholder="@username или https://t.me/username">
+    </div>
 
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">отмена</button>
@@ -1219,6 +1227,8 @@ function saveLocationSettings(idx) {
     phone2: document.getElementById('ls-phone2').value.trim(),
     viber1: document.getElementById('ls-viber1').value.trim(),
     viber2: document.getElementById('ls-viber2').value.trim(),
+    telegram1: document.getElementById('ls-tg1').value.trim(),
+    telegram2: document.getElementById('ls-tg2').value.trim(),
     groupSize: document.getElementById('ls-group').value.trim()
   };
   saveLocal();
@@ -1626,33 +1636,48 @@ function formatViberLink(v) {
   if (!v) return '';
   const trimmed = String(v).trim();
   if (trimmed.startsWith('viber:') || trimmed.startsWith('http')) return trimmed;
-  // Если это просто номер — собираем viber://
   const digits = trimmed.replace(/[^\d+]/g, '');
   return 'viber://chat?number=' + encodeURIComponent(digits);
 }
 
+function formatTelegramLink(t) {
+  if (!t) return '';
+  const trimmed = String(t).trim();
+  if (trimmed.startsWith('http')) return trimmed;
+  // Очищаем от @ и пробелов
+  const username = trimmed.replace(/^@/, '').replace(/\s+/g, '');
+  return 'https://t.me/' + username;
+}
+
 function renderContactsBlock(locDet) {
   if (!locDet) return '';
-  const phones = [locDet.phone1, locDet.phone2].filter(Boolean);
-  const vibers = [locDet.viber1, locDet.viber2].filter(Boolean);
-  if (!phones.length && !vibers.length) return '';
-  let rows = '';
-  phones.forEach(p => {
-    rows += `<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
-      <span style="color:rgba(42,42,40,0.55);font-size:11px;width:60px">телефон</span>
-      <a href="tel:${escapeHtml(p.replace(/[^\d+]/g, ''))}" style="color:var(--ink);text-decoration:none;font-weight:500">${escapeHtml(p)}</a>
-    </div>`;
-  });
-  vibers.forEach(v => {
-    rows += `<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
-      <span style="color:rgba(42,42,40,0.55);font-size:11px;width:60px">viber</span>
-      <a href="${escapeHtml(formatViberLink(v))}" style="color:var(--ink);text-decoration:none;font-weight:500">${escapeHtml(v)}</a>
-    </div>`;
-  });
+  // Собираем пары: каждый «контакт» = (phone, viber, telegram)
+  const contacts = [
+    { phone: locDet.phone1, viber: locDet.viber1, tg: locDet.telegram1 },
+    { phone: locDet.phone2, viber: locDet.viber2, tg: locDet.telegram2 }
+  ].filter(c => c.phone || c.viber || c.tg);
+  if (!contacts.length) return '';
+
+  const rows = contacts.map(c => {
+    const phoneBtn = c.phone
+      ? `<a href="tel:${escapeHtml(c.phone.replace(/[^\d+]/g, ''))}" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--paper-deep);border-radius:6px;text-decoration:none;color:var(--ink);font-family:Inter,sans-serif;font-size:14px">
+          <span style="font-size:16px">📞</span>
+          <span style="font-weight:500">${escapeHtml(c.phone)}</span>
+        </a>`
+      : `<div style="flex:1"></div>`;
+    const viberBtn = c.viber
+      ? `<a href="${escapeHtml(formatViberLink(c.viber))}" title="Viber" style="display:flex;align-items:center;justify-content:center;padding:10px 14px;background:var(--paper-deep);border-radius:6px;text-decoration:none;font-size:18px">💬</a>`
+      : '';
+    const tgBtn = c.tg
+      ? `<a href="${escapeHtml(formatTelegramLink(c.tg))}" target="_blank" title="Telegram" style="display:flex;align-items:center;justify-content:center;padding:10px 14px;background:var(--paper-deep);border-radius:6px;text-decoration:none;font-size:18px">✈</a>`
+      : '';
+    return `<div style="display:flex;gap:6px;margin-bottom:6px">${phoneBtn}${viberBtn}${tgBtn}</div>`;
+  }).join('');
+
   return `
     <div style="border-top:1px solid rgba(42,42,40,0.1);padding-top:12px;margin-top:12px">
-      <div style="font-family:Inter,sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:6px">📞 Записаться</div>
-      <div style="font-family:Inter,sans-serif;font-size:13px">${rows}</div>
+      <div style="font-family:Inter,sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:8px">📞 Записаться</div>
+      ${rows}
     </div>
   `;
 }
