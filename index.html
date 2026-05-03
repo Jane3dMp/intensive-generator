@@ -522,6 +522,26 @@
   .info-btn:hover { color: var(--ink); transform: scale(1.15); }
   .info-btn.has-desc { color: rgba(42,42,40,0.7); }
   .info-btn.has-desc:hover { color: var(--ink); }
+  .crm-badge {
+    flex-shrink: 0;
+    margin-left: 4px;
+    background: var(--green-soft, #C9E4CB);
+    color: rgba(42,42,40,0.9);
+    border: 0.5px solid rgba(42,84,46,0.4);
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-family: Inter, sans-serif;
+    font-size: 9.5px;
+    font-weight: 500;
+    text-decoration: none;
+    line-height: 1.4;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .crm-badge:hover {
+    background: #B8D9BB;
+    color: var(--ink);
+  }
   .slot-actions {
     display: flex;
     flex-direction: column;
@@ -1487,6 +1507,13 @@ function renderSlot(weekId, wIdx, lIdx, slot, sIdx) {
         <button class="info-btn ${hasDesc ? 'has-desc' : ''}"
           onclick="showSlotProgram('${weekId}',${lIdx},${sIdx})"
           title="${hasDesc ? 'программа интенсива' : 'добавить описание'}">ⓘ</button>
+        ${slot.crmGroupId ? `
+          <a class="crm-badge" href="${escapeHtml(slot.crmFormUrl || buildCrmLeadFormUrl(slot.crmGroupId))}"
+             target="_blank" onclick="event.stopPropagation()"
+             title="Опубликовано в Альфа CRM (id ${slot.crmGroupId}). Клик — открыть форму записи">
+            ✓ CRM
+          </a>
+        ` : ''}
       </span>
       <input class="teacher" value="${escapeHtml(slot.teacher)}" placeholder="педагог"
         onchange="setSlotField('${weekId}',${lIdx},${sIdx},'teacher',this.value)" style="grid-column:auto">
@@ -1691,6 +1718,13 @@ function showSlotProgram(weekId, lIdx, sIdx) {
 
     ${renderBringWithYouBlock(state.bringWithYou)}
     ${renderContactsBlock(locDet)}
+
+    ${slot.crmFormUrl ? `
+      <a href="${escapeHtml(slot.crmFormUrl)}" target="_blank"
+         style="display:block;margin-top:14px;padding:12px;background:var(--ink);color:var(--paper);text-align:center;border-radius:6px;text-decoration:none;font-family:Inter,sans-serif;font-size:14px;font-weight:500">
+        ✏ форма записи (как у родителей)
+      </a>
+    ` : ''}
 
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">закрыть</button>
@@ -3401,12 +3435,22 @@ function proceedCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
 
   // Угадываем педагога по имени из слота
   const teacherGuess = slot.alfaTeacherId || guessTeacherId(slot.teacher, ref.teachers || []);
-  // Предмет: сначала из слота (через библиотеку), потом из дефолтов проекта
+  // Предмет: сначала из слота (через библиотеку), потом из дефолтов проекта,
+  // потом fallback — ищем «Интенсив» / «Интенсивы» в справочнике
   const def = state.crmDefaults || {};
-  const subjectGuess = slot.alfaSubjectId || def.subjectId || null;
+  let subjectGuess = slot.alfaSubjectId || def.subjectId || null;
+  if (!subjectGuess && ref.subjects) {
+    const fallback = ref.subjects.find(s => /интенсив/i.test(String(s.name || '')));
+    if (fallback) subjectGuess = fallback.id;
+  }
   const locationGuess = (state.locationDetails && state.locationDetails[lIdx] && state.locationDetails[lIdx].alfaLocationId) || null;
   const roomGuess = (state.locationDetails && state.locationDetails[lIdx] && state.locationDetails[lIdx].alfaRoomId) || null;
-  const lessonTypeGuess = def.lessonTypeId || null;
+  // Тип урока: дефолт → fallback на «Групповой»
+  let lessonTypeGuess = def.lessonTypeId || null;
+  if (!lessonTypeGuess && ref.lesson_types) {
+    const fallback = ref.lesson_types.find(t => /групп/i.test(String(t.name || '')));
+    if (fallback) lessonTypeGuess = fallback.id;
+  }
   const statusGuess = def.statusId || null;
   const levelGuess = def.levelId || null;
 
@@ -3511,6 +3555,13 @@ function proceedCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
   `);
 }
 
+// Строит публичную ссылку записи лида в Альфе для группы
+const ALFA_DOMAIN = 'proznanie4eee.s20.online';
+function buildCrmLeadFormUrl(groupId) {
+  if (!groupId) return '';
+  return 'https://' + ALFA_DOMAIN + '/common/' + ALFA_BRANCH_ID + '/lead/create?gid=' + groupId;
+}
+
 // Дефолтный note для CRM группы — обрезает описание до 255 симв
 function buildDefaultCrmNote(slot) {
   let note = 'Через Прознание+Coddy. ' + (slot.theme || '');
@@ -3609,7 +3660,14 @@ async function submitCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
     teacher_ids: [parseInt(teacherId)],
     branch_ids: [ALFA_BRANCH_ID],
     b_date: ruDate(firstDate),
-    e_date: ruDate(lastDate)
+    e_date: ruDate(lastDate),
+    // Лимит участников (стандарт для интенсивов)
+    limit: 12,
+    // Включение публичной формы записи. Альфа использует разные имена в разных версиях —
+    // отправляем все на всякий случай, лишние просто игнорируются.
+    is_lead_form_active: true,
+    lead_form_enabled: true,
+    public_lead_create: true
   };
   if (statusId) groupPayload.status_id = parseInt(statusId);
   if (levelId) groupPayload.level_id = parseInt(levelId);
@@ -3656,6 +3714,7 @@ async function submitCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
     if (data.ok || (data.groupId && data.lessonsCreated === data.totalLessons)) {
       pushUndo();
       slot.crmGroupId = data.groupId;
+      slot.crmFormUrl = buildCrmLeadFormUrl(data.groupId);
       slot.crmSyncedAt = new Date().toISOString();
       saveLocal();
       closeModal();
@@ -3665,6 +3724,7 @@ async function submitCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
       // Группа создана, но часть уроков с ошибкой
       pushUndo();
       slot.crmGroupId = data.groupId;
+      slot.crmFormUrl = buildCrmLeadFormUrl(data.groupId);
       saveLocal();
       closeModal();
       render();
