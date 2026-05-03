@@ -3679,7 +3679,7 @@ function buildCrmLeadFormUrl(groupId) {
 // Включает стоимость и ключевую часть описания.
 function buildDefaultCrmNote(slot) {
   const cost = slot.cost ? (slot.cost + 'р/занятие') : '';
-  let note = 'Прознание+Coddy. ' + (slot.theme || '');
+  let note = slot.theme || '';
   if (cost) note += ' (' + cost + ')';
   if (slot.description) {
     const desc = slot.description.replace(/\s+/g, ' ').trim();
@@ -3717,7 +3717,8 @@ ${slot.description}`;
     if (!data.ok) throw new Error(data.error || 'Claude error');
 
     const shrunk = String(data.text || '').trim();
-    let note = 'Через Прознание+Coddy. ' + (slot.theme || '') + ' — ' + shrunk;
+    const cost = slot.cost ? (' (' + slot.cost + 'р/занятие)') : '';
+    let note = (slot.theme || '') + cost + ' — ' + shrunk;
     if (note.length > 255) note = note.substring(0, 252) + '…';
 
     ta.value = note;
