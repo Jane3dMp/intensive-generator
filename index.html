@@ -3488,6 +3488,20 @@ function proceedCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
     <label style="margin-top:8px">Тема каждого урока (можно подменить)</label>
     <input type="text" id="crm-topic" value="${escapeHtml(slot.theme)}" placeholder="${escapeHtml(slot.theme)}">
 
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-top:8px">
+      <label style="margin:0">Описание группы (для Альфы) <span style="color:rgba(42,42,40,0.5)">макс. 255 симв</span></label>
+      ${slot.description && slot.description.length > 200 ? `
+        <button class="btn btn-ghost btn-sm" onclick="aiShrinkCrmNote('${weekId}',${lIdx},${sIdx})" type="button" style="padding:2px 8px;font-size:11px">
+          ✨ ужать ИИ
+        </button>
+      ` : ''}
+    </div>
+    <textarea id="crm-note" placeholder="Краткое описание группы (видно педагогам в Альфе)" maxlength="255" style="min-height:60px;font-size:12px"
+      oninput="document.getElementById('crm-note-count').textContent=this.value.length">${escapeHtml(buildDefaultCrmNote(slot))}</textarea>
+    <div style="font-family:Inter,sans-serif;font-size:11px;color:rgba(42,42,40,0.5);margin-top:-4px">
+      <span id="crm-note-count">${buildDefaultCrmNote(slot).length}</span> / 255
+    </div>
+
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">отмена</button>
       <button class="btn btn-primary" onclick="submitCrmForm('${weekId}',${lIdx},${sIdx},'${mode}',${existingGroupId || 'null'})">
@@ -3495,6 +3509,59 @@ function proceedCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
       </button>
     </div>
   `);
+}
+
+// Дефолтный note для CRM группы — обрезает описание до 255 симв
+function buildDefaultCrmNote(slot) {
+  let note = 'Через Прознание+Coddy. ' + (slot.theme || '');
+  if (slot.description) {
+    const desc = slot.description.replace(/\s+/g, ' ').trim();
+    const remain = 250 - note.length - 3;
+    if (remain > 30) note += ' — ' + desc.substring(0, remain) + (desc.length > remain ? '…' : '');
+  }
+  if (note.length > 255) note = note.substring(0, 252) + '…';
+  return note;
+}
+
+// Сжимает описание слота через ИИ до 200 символов
+async function aiShrinkCrmNote(weekId, lIdx, sIdx) {
+  const w = findWeek(weekId); if (!w) return;
+  const slot = w.locations[lIdx].slots[sIdx];
+  if (!slot.description) { toast('У слота нет описания', 'error'); return; }
+
+  const ta = document.getElementById('crm-note');
+  if (!ta) return;
+  const oldVal = ta.value;
+  ta.disabled = true;
+  ta.value = 'ИИ сжимает описание…';
+
+  try {
+    const prompt = `Сожми описание интенсива до 200 символов максимум. Сохрани суть: для кого и что получит ребёнок к концу. Без воды, без "за неделю", без перечисления глаголами. Стиль — ёмкий, без эмоджи. Только сам текст без преамбул.
+
+Исходное описание:
+${slot.description}`;
+
+    const r = await fetch(LIBRARY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'claude', prompt: prompt })
+    });
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'Claude error');
+
+    const shrunk = String(data.text || '').trim();
+    let note = 'Через Прознание+Coddy. ' + (slot.theme || '') + ' — ' + shrunk;
+    if (note.length > 255) note = note.substring(0, 252) + '…';
+
+    ta.value = note;
+    document.getElementById('crm-note-count').textContent = note.length;
+    toast('✓ Сжато', 'success');
+  } catch(e) {
+    ta.value = oldVal;
+    toast('Ошибка ИИ: ' + e.message, 'error');
+  } finally {
+    ta.disabled = false;
+  }
 }
 
 async function submitCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
@@ -3522,13 +3589,10 @@ async function submitCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
   const lastDate = dates[dates.length-1];
   const isoDate = (d) => d.toISOString().slice(0, 10);
 
-  // Альфа лимитирует note 255 символами. Берём только тему и часть описания.
-  let note = 'Через Прознание+Coddy. ' + slot.theme;
-  if (slot.description) {
-    const desc = slot.description.replace(/\s+/g, ' ').trim();
-    const remain = 250 - note.length - 3;  // 3 на « ...»
-    if (remain > 30) note += ' ' + desc.substring(0, remain) + (desc.length > remain ? '…' : '');
-  }
+  // Альфа лимитирует note 255 символами. Берём из формы (где можно ужать ИИ).
+  let note = (document.getElementById('crm-note') || {}).value || '';
+  note = note.trim();
+  if (!note) note = buildDefaultCrmNote(slot);
   if (note.length > 255) note = note.substring(0, 252) + '…';
 
   // Альфа принимает даты в формате DD.MM.YYYY (русский формат)
@@ -3557,13 +3621,18 @@ async function submitCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
       time_from: time.from,
       time_to: time.to,
       duration: time.duration,
-      teacher_id: parseInt(teacherId),
+      // Тонкость API Альфы (опытом установлено):
+      //   teacher_ids — массив (одиночное teacher_id игнорируется)
+      //   group_ids   — массив (одиночное group_id игнорируется)
+      //   location_id — одиночное (массив location_ids игнорируется)
+      //   room_id     — одиночное (массив room_ids игнорируется)
+      teacher_ids: [parseInt(teacherId)],
       subject_id: parseInt(subjectId),
       lesson_type_id: parseInt(lessonTypeId),
-      location_ids: [parseInt(locationId)],
+      location_id: parseInt(locationId),
       topic: topic
     };
-    if (roomId) payload.room_ids = [parseInt(roomId)];
+    if (roomId) payload.room_id = parseInt(roomId);
     return payload;
   });
 
