@@ -870,7 +870,7 @@
 // ============================================================
 // URL Apps Script Web App. Подставьте свой после деплоя Code.gs.
 // До настройки можно работать с пустой библиотекой и localStorage.
-const LIBRARY_URL = 'https://script.google.com/macros/s/AKfycbzbsD_4-SLX2sdd8rhhJAwWYA5UJtaRZ42uwaI1Q1BgD67tHvMitclU5wSnqkn94t2F/exec';
+const LIBRARY_URL = 'https://script.google.com/macros/s/AKfycbwjCR6mRw5b-M0ZoJrgZBdVn4LgK2ANxfsn8xogV308nKJ3EoSlEPBLhKrAcnZsv0s1/exec';
 
 // Тип проекта — отделяет данные интенсивов от лагерных в общем Apps Script
 const PROJECT_TYPE = 'intensive';
@@ -3526,12 +3526,12 @@ async function submitCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
     name: slot.theme,
     note: 'Автоматически создано через Прознание+Coddy. Тема: ' + slot.theme +
           (slot.description ? '\n\n' + slot.description : ''),
-    teacher_id: parseInt(teacherId),
-    branch_id: ALFA_BRANCH_ID,
-    b_date_from: isoDate(firstDate),
-    b_date_to: isoDate(firstDate),
-    e_date_from: isoDate(lastDate),
-    e_date_to: isoDate(lastDate)
+    // В Альфе группа поддерживает массив педагогов и массив филиалов
+    teacher_ids: [parseInt(teacherId)],
+    branch_ids: [ALFA_BRANCH_ID],
+    // Даты — ОДНО поле (не диапазон). Начало обучения = первый день, окончание = последний.
+    b_date: isoDate(firstDate),
+    e_date: isoDate(lastDate)
   };
   if (statusId) groupPayload.status_id = parseInt(statusId);
   if (levelId) groupPayload.level_id = parseInt(levelId);
