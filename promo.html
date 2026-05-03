@@ -352,6 +352,22 @@
     cursor: pointer;
     margin-top: 16px;
   }
+  .register-btn {
+    display: block;
+    margin-top: 14px;
+    padding: 12px;
+    background: var(--ink);
+    color: var(--paper);
+    text-align: center;
+    border-radius: 6px;
+    text-decoration: none;
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    transition: opacity 0.15s;
+  }
+  .register-btn:hover { opacity: 0.85; }
 
   .footer {
     max-width: 1300px;
@@ -483,7 +499,7 @@
 
 <script>
 // URL Apps Script — должен совпадать с index.html
-const LIBRARY_URL = 'https://script.google.com/macros/s/AKfycbzbsD_4-SLX2sdd8rhhJAwWYA5UJtaRZ42uwaI1Q1BgD67tHvMitclU5wSnqkn94t2F/exec';
+const LIBRARY_URL = 'https://script.google.com/macros/s/AKfycbwjCR6mRw5b-M0ZoJrgZBdVn4LgK2ANxfsn8xogV308nKJ3EoSlEPBLhKrAcnZsv0s1/exec';
 const PROJECT_TYPE = 'intensive';
 
 let state = null;
@@ -769,6 +785,12 @@ function showSlotDetails(wIdx, lIdx, sIdx) {
 
     ${renderBringWithYouBlock(state.bringWithYou)}
     ${renderContactsBlock(locDet)}
+
+    ${s.crmFormUrl ? `
+      <a href="${escapeHtml(s.crmFormUrl)}" target="_blank" class="register-btn">
+        ✏ записаться на интенсив
+      </a>
+    ` : ''}
 
     <button class="modal-close" onclick="closeModal()" style="margin-top:16px">закрыть</button>
   `;
