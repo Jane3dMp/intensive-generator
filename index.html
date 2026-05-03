@@ -1198,8 +1198,11 @@ function openLocationSettings(idx) {
 
     <label>ID локации в Альфа CRM <span style="color:rgba(42,42,40,0.5)">(для автопривязки при отправке)</span></label>
     <input type="number" id="ls-alfa-loc" value="${escapeHtml(det.alfaLocationId || '')}" placeholder="напр. 6">
+
+    <label>ID аудитории по умолчанию <span style="color:rgba(42,42,40,0.5)">(опционально)</span></label>
+    <input type="number" id="ls-alfa-room" value="${escapeHtml(det.alfaRoomId || '')}" placeholder="напр. 18">
     <p style="font-family:Inter,sans-serif;font-size:11px;color:rgba(42,42,40,0.5);margin-top:-6px;margin-bottom:8px">
-      В Альфе: Настройки → Локации → ID указан рядом с названием
+      В Альфе: Настройки → Аудитории. Если у локации несколько аудиторий — впишите ту, которая чаще используется (можно перекрыть в форме отправки).
     </p>
 
     <div style="margin-top:14px;padding:10px 12px;background:var(--paper-warm);border-radius:6px;border:1px solid rgba(42,42,40,0.1)">
@@ -1243,7 +1246,8 @@ function saveLocationSettings(idx) {
     telegram1: document.getElementById('ls-tg1').value.trim(),
     telegram2: document.getElementById('ls-tg2').value.trim(),
     groupSize: document.getElementById('ls-group').value.trim(),
-    alfaLocationId: document.getElementById('ls-alfa-loc').value.trim()
+    alfaLocationId: document.getElementById('ls-alfa-loc').value.trim(),
+    alfaRoomId: document.getElementById('ls-alfa-room').value.trim()
   };
   saveLocal();
   closeModal();
@@ -3401,6 +3405,7 @@ function proceedCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
   const def = state.crmDefaults || {};
   const subjectGuess = slot.alfaSubjectId || def.subjectId || null;
   const locationGuess = (state.locationDetails && state.locationDetails[lIdx] && state.locationDetails[lIdx].alfaLocationId) || null;
+  const roomGuess = (state.locationDetails && state.locationDetails[lIdx] && state.locationDetails[lIdx].alfaRoomId) || null;
   const lessonTypeGuess = def.lessonTypeId || null;
   const statusGuess = def.statusId || null;
   const levelGuess = def.levelId || null;
@@ -3458,7 +3463,7 @@ function proceedCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
     <select id="crm-location">${opts(ref.locations, locationGuess)}</select>
 
     <label>Аудитория <span style="color:rgba(42,42,40,0.5)">(опционально)</span></label>
-    <select id="crm-room">${opts(ref.rooms, null)}</select>
+    <select id="crm-room">${opts(ref.rooms, roomGuess)}</select>
 
     <label>Тип урока</label>
     <select id="crm-lesson-type">${opts(ref.lesson_types, lessonTypeGuess)}</select>
