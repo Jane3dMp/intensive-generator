@@ -1189,6 +1189,12 @@ function openLocationSettings(idx) {
     <label>Размер группы (детей)</label>
     <input type="text" id="ls-group" value="${escapeHtml(det.groupSize || '')}" placeholder="напр. до 10 детей">
 
+    <label>ID локации в Альфа CRM <span style="color:rgba(42,42,40,0.5)">(для автопривязки при отправке)</span></label>
+    <input type="number" id="ls-alfa-loc" value="${escapeHtml(det.alfaLocationId || '')}" placeholder="напр. 6">
+    <p style="font-family:Inter,sans-serif;font-size:11px;color:rgba(42,42,40,0.5);margin-top:-6px;margin-bottom:8px">
+      В Альфе: Настройки → Локации → ID указан рядом с названием
+    </p>
+
     <div style="margin-top:14px;padding:10px 12px;background:var(--paper-warm);border-radius:6px;border:1px solid rgba(42,42,40,0.1)">
       <div style="font-family:Inter,sans-serif;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:8px">Контакт 1</div>
       <label style="margin-top:0">Телефон</label>
@@ -1229,7 +1235,8 @@ function saveLocationSettings(idx) {
     viber2: document.getElementById('ls-viber2').value.trim(),
     telegram1: document.getElementById('ls-tg1').value.trim(),
     telegram2: document.getElementById('ls-tg2').value.trim(),
-    groupSize: document.getElementById('ls-group').value.trim()
+    groupSize: document.getElementById('ls-group').value.trim(),
+    alfaLocationId: document.getElementById('ls-alfa-loc').value.trim()
   };
   saveLocal();
   closeModal();
@@ -2059,7 +2066,9 @@ async function saveSlotToLibrary(weekId, lIdx, sIdx) {
     duration,
     format: 'интенсив',
     examples: '',
-    description: description || ''
+    description: description || '',
+    alfaTeacherId: w.locations[lIdx].slots[sIdx].alfaTeacherId || '',
+    alfaSubjectId: w.locations[lIdx].slots[sIdx].alfaSubjectId || ''
   };
 
   // Ищем в библиотеке тему с тем же названием (нечувствительно к регистру)
@@ -2193,6 +2202,8 @@ function applyLibToSlot(weekId, lIdx, sIdx, libIdx) {
   slot.teacher = item.teacher || '';
   slot.template = item.template || '';
   slot.direction = item.direction || '';
+  if (item.alfaTeacherId) slot.alfaTeacherId = item.alfaTeacherId;
+  if (item.alfaSubjectId) slot.alfaSubjectId = item.alfaSubjectId;
   if (!slot.cost && state.defaultCost) slot.cost = String(state.defaultCost);
   if (!slot.description && item.description) slot.description = item.description;
   saveLocal();
@@ -2276,6 +2287,17 @@ function openLibItemForm(idx) {
     <label>Описание *</label>
     <textarea id="lib-description" placeholder="Что ребёнок узнает и сделает за неделю — для родителей и для ИИ" style="min-height:90px">${escapeHtml(it.description || '')}</textarea>
 
+    <div style="margin-top:14px;padding:10px 12px;background:var(--paper-warm);border-radius:6px;border:1px solid rgba(42,42,40,0.1)">
+      <div style="font-family:Inter,sans-serif;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:8px">Альфа CRM (опционально)</div>
+      <label style="margin-top:0">ID педагога в Альфе</label>
+      <input type="number" id="lib-alfa-teacher" value="${escapeHtml(it.alfaTeacherId || '')}" placeholder="напр. 57">
+      <label>ID предмета в Альфе</label>
+      <input type="number" id="lib-alfa-subject" value="${escapeHtml(it.alfaSubjectId || '')}" placeholder="напр. 73">
+      <p style="font-family:Inter,sans-serif;font-size:11px;color:rgba(42,42,40,0.5);margin-top:4px">
+        Если заполнить — при отправке в Альфу из этой темы автоматически подставятся правильный педагог и предмет.
+      </p>
+    </div>
+
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">отмена</button>
       <button class="btn btn-primary" onclick="saveLibItem(${isEdit ? idx : 'null'})">${isEdit ? 'сохранить' : 'добавить'}</button>
@@ -2297,7 +2319,9 @@ async function saveLibItem(idx) {
     duration: parseInt(document.getElementById('lib-duration').value) || 120,
     format: document.getElementById('lib-format').value.trim() || 'интенсив',
     examples: document.getElementById('lib-examples').value.trim(),
-    description: document.getElementById('lib-description').value.trim()
+    description: document.getElementById('lib-description').value.trim(),
+    alfaTeacherId: document.getElementById('lib-alfa-teacher').value.trim(),
+    alfaSubjectId: document.getElementById('lib-alfa-subject').value.trim()
   };
   // Валидация обязательных полей
   if (!item.template) { toast('Укажите название', 'error'); return; }
@@ -3301,7 +3325,9 @@ function proceedCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
   };
 
   // Угадываем педагога по имени из слота
-  const teacherGuess = guessTeacherId(slot.teacher, ref.teachers || []);
+  const teacherGuess = slot.alfaTeacherId || guessTeacherId(slot.teacher, ref.teachers || []);
+  const subjectGuess = slot.alfaSubjectId || null;
+  const locationGuess = (state.locationDetails && state.locationDetails[lIdx] && state.locationDetails[lIdx].alfaLocationId) || null;
 
   // Если филиал пустой — предупреждаем и не открываем форму
   if (!ref.teachers || !ref.teachers.length) {
@@ -3350,10 +3376,10 @@ function proceedCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
     <select id="crm-teacher">${opts(ref.teachers, teacherGuess)}</select>
 
     <label>Предмет</label>
-    <select id="crm-subject">${opts(ref.subjects, null)}</select>
+    <select id="crm-subject">${opts(ref.subjects, subjectGuess)}</select>
 
     <label>Локация в Альфе</label>
-    <select id="crm-location">${opts(ref.locations, null)}</select>
+    <select id="crm-location">${opts(ref.locations, locationGuess)}</select>
 
     <label>Аудитория <span style="color:rgba(42,42,40,0.5)">(опционально)</span></label>
     <select id="crm-room">${opts(ref.rooms, null)}</select>
