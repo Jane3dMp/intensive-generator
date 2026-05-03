@@ -294,6 +294,29 @@
     border-radius: 2px;
   }
 
+  .week-action {
+    background: transparent;
+    border: 1px solid rgba(42,42,40,0.15);
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-family: Inter, sans-serif;
+    color: rgba(42,42,40,0.5);
+    cursor: pointer;
+    line-height: 1;
+    transition: all 0.15s;
+  }
+  .week-action:hover:not(:disabled) {
+    background: var(--white);
+    color: var(--ink);
+    border-color: var(--ink);
+  }
+  .week-action:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  .week-action.danger:hover { color: var(--danger); border-color: var(--danger); }
+
   /* Неделя — 3 колонки */
   .week-row {
     display: grid;
@@ -1117,12 +1140,20 @@ function renderSchedule() {
       html += `<div class="month-header">${escapeHtml(w.month || '—')}</div>`;
       lastMonth = w.month;
     }
-    // Маркер смены лагеря (заполняется вручную)
+    // Маркер смены лагеря + кнопки управления неделей
+    const isFirst = wIdx === 0;
+    const isLast = wIdx === state.weeks.length - 1;
     html += `
-      <div class="marker-header">
+      <div class="marker-header" style="display:flex;align-items:center;gap:6px;padding:4px 10px">
         <input type="text" value="${escapeHtml(w.marker || '')}"
           placeholder="—маркер смены (МНО / Творческая / Смешанная / IT) —"
-          onchange="setWeekMarker('${w.id}', this.value)">
+          onchange="setWeekMarker('${w.id}', this.value)" style="flex:1;background:transparent;border:none;font-family:Inter,sans-serif;font-weight:600;font-size:13px;text-align:center;color:rgba(42,42,40,0.7);text-transform:uppercase;letter-spacing:0.05em;outline:none;cursor:text">
+        <div class="week-actions" style="display:flex;gap:2px;flex-shrink:0">
+          <button class="week-action" onclick="moveWeek('${w.id}', -1)" title="выше" ${isFirst?'disabled':''}>▲</button>
+          <button class="week-action" onclick="moveWeek('${w.id}', 1)" title="ниже" ${isLast?'disabled':''}>▼</button>
+          <button class="week-action" onclick="openWeekMenu('${w.id}')" title="меню">⋯</button>
+          <button class="week-action danger" onclick="removeWeekRow('${w.id}')" title="удалить">✕</button>
+        </div>
       </div>
     `;
     // Ряд недели — 3 колонки
@@ -1441,6 +1472,83 @@ function addWeekRow() {
   render();
 }
 
+function moveWeek(weekId, direction) {
+  const idx = state.weeks.findIndex(w => w.id === weekId);
+  if (idx === -1) return;
+  const newIdx = idx + direction;
+  if (newIdx < 0 || newIdx >= state.weeks.length) return;
+  pushUndo();
+  // Меняем местами
+  const tmp = state.weeks[idx];
+  state.weeks[idx] = state.weeks[newIdx];
+  state.weeks[newIdx] = tmp;
+  saveLocal();
+  render();
+}
+
+function duplicateWeek(weekId) {
+  const idx = state.weeks.findIndex(w => w.id === weekId);
+  if (idx === -1) return;
+  pushUndo();
+  // Делаем глубокую копию через JSON
+  const copy = JSON.parse(JSON.stringify(state.weeks[idx]));
+  copy.id = 'w_' + Math.random().toString(36).slice(2, 9);
+  state.weeks.splice(idx + 1, 0, copy);
+  saveLocal();
+  render();
+  toast('Неделя продублирована', 'success');
+  closeModal();
+}
+
+function openWeekMenu(weekId) {
+  const w = findWeek(weekId); if (!w) return;
+  const idx = state.weeks.findIndex(ww => ww.id === weekId);
+  const dateLabel = w.locations.map(l => l.dateRange).filter(Boolean)[0] || '—';
+
+  const months = ['','январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+
+  openModal(`
+    <h2>Неделя #${idx + 1}</h2>
+    <p>${escapeHtml(dateLabel)} · ${escapeHtml(w.marker || '—')}</p>
+
+    <label>Месяц (для группировки)</label>
+    <select id="wm-month">
+      ${months.map(m => `<option value="${escapeHtml(m)}" ${(w.month||'')===m?'selected':''}>${m || '—'}</option>`).join('')}
+    </select>
+
+    <label>Маркер смены лагеря</label>
+    <input type="text" id="wm-marker" value="${escapeHtml(w.marker || '')}" placeholder="МНО / Творческая / Смешанная / IT">
+
+    <label>Дата для всех 3 локаций (быстрая правка)</label>
+    <input type="text" id="wm-date" value="${escapeHtml(dateLabel === '—' ? '' : dateLabel)}" placeholder="напр. 15 - 19 июня">
+    <p style="font-size:11px;color:rgba(42,42,40,0.5);margin-top:4px">подставится во все 3 локации этой недели; если хотите разные даты — пропустите и правьте бейджи в сетке</p>
+
+    <div class="modal-actions">
+      <button class="btn btn-danger" onclick="closeModal();removeWeekRow('${weekId}')">🗑 удалить</button>
+      <button class="btn btn-ghost" onclick="duplicateWeek('${weekId}')">🗐 дублировать</button>
+      <span style="flex:1"></span>
+      <button class="btn btn-ghost" onclick="closeModal()">отмена</button>
+      <button class="btn btn-primary" onclick="saveWeekMeta('${weekId}')">сохранить</button>
+    </div>
+  `);
+}
+
+function saveWeekMeta(weekId) {
+  pushUndo();
+  const w = findWeek(weekId); if (!w) return;
+  w.month = document.getElementById('wm-month').value;
+  w.marker = document.getElementById('wm-marker').value.trim();
+  const newDate = document.getElementById('wm-date').value.trim();
+  if (newDate) {
+    // Подставляем во все 3 локации
+    w.locations.forEach(loc => { loc.dateRange = newDate; });
+  }
+  saveLocal();
+  closeModal();
+  render();
+  toast('Неделя обновлена', 'success');
+}
+
 function removeWeekRow(weekId) {
   if (!confirm('Удалить неделю целиком?')) return;
   pushUndo();
@@ -1504,6 +1612,7 @@ function openSlotMenu(weekId, lIdx, sIdx) {
       <button class="btn btn-ghost btn-sm" onclick="aiSuggestForSlot('${weekId}',${lIdx},${sIdx})">💡 ИИ: подобрать тему</button>
       <button class="btn btn-ghost btn-sm" onclick="aiExpandDescription('${weekId}',${lIdx},${sIdx})">✨ ИИ: расширить описание</button>
       <button class="btn btn-ghost btn-sm" onclick="openLibForSlot('${weekId}',${lIdx},${sIdx})">📚 из библиотеки</button>
+      <button class="btn btn-ghost btn-sm" onclick="saveSlotToLibrary('${weekId}',${lIdx},${sIdx})">💾 в библиотеку</button>
     </div>
 
     <div class="modal-actions">
@@ -1528,6 +1637,128 @@ function saveSlotMenu(weekId, lIdx, sIdx) {
   saveLocal();
   closeModal();
   render();
+}
+
+// Парсим длительность из строки времени: "14:00-16:00" → 120 мин, "10:30-13" → 150 мин
+function parseTimeDuration(timeStr) {
+  if (!timeStr) return 0;
+  const m = String(timeStr).match(/(\d{1,2})(?::(\d{2}))?\s*-\s*(\d{1,2})(?::(\d{2}))?/);
+  if (!m) return 0;
+  const h1 = parseInt(m[1]) || 0;
+  const m1 = parseInt(m[2]) || 0;
+  const h2 = parseInt(m[3]) || 0;
+  const m2 = parseInt(m[4]) || 0;
+  const minutes = (h2 * 60 + m2) - (h1 * 60 + m1);
+  return minutes > 0 ? minutes : 0;
+}
+
+// Сохранить текущие поля карточки слота как тему в библиотеку
+async function saveSlotToLibrary(weekId, lIdx, sIdx) {
+  // Берём значения прямо из открытых полей (а не из state — пользователь мог что-то изменить)
+  const theme = document.getElementById('sm-theme').value.trim();
+  const teacher = document.getElementById('sm-teacher').value.trim();
+  const direction = document.getElementById('sm-direction').value.trim();
+  const cost = document.getElementById('sm-cost').value.trim();
+  const description = document.getElementById('sm-desc').value.trim();
+  const time = document.getElementById('sm-time').value.trim();
+  const locName = state.locations[lIdx] || '';
+
+  if (!theme) { toast('Укажите тему', 'error'); return; }
+  if (!teacher) { toast('Укажите педагога', 'error'); return; }
+  if (!direction) { toast('Выберите направление', 'error'); return; }
+  if (!description) {
+    if (!confirm('Описание пустое. Сохранить тему без описания? (Лучше сначала ✨ расширить описание через ИИ)')) return;
+  }
+
+  // Готовим item
+  const duration = parseTimeDuration(time) || 120;
+  const item = {
+    template: theme,
+    teacher,
+    direction,
+    location: locName,
+    age: state.ages || '6–11 лет',
+    duration,
+    format: 'интенсив',
+    examples: '',
+    description: description || ''
+  };
+
+  // Ищем в библиотеке тему с тем же названием (нечувствительно к регистру)
+  const themeNorm = theme.toLowerCase().trim();
+  const existingIdx = LIBRARY.findIndex(it =>
+    String(it.template || it.name || '').toLowerCase().trim() === themeNorm
+  );
+
+  if (existingIdx >= 0) {
+    const existing = LIBRARY[existingIdx];
+    // Сохраняем в глобальную переменную чтобы избежать проблем с экранированием в onclick
+    window._pendingLibItem = item;
+    window._pendingLibRowIdx = existing.rowIdx;
+    window._pendingSlotCtx = { weekId, lIdx, sIdx };
+    // Спрашиваем что делать
+    openModal(`
+      <h2>Тема уже в библиотеке</h2>
+      <p>«<b>${escapeHtml(theme)}</b>» уже есть в библиотеке (педагог: ${escapeHtml(existing.teacher || '—')}).</p>
+      <p>Что сделать?</p>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+        <button class="btn" style="text-align:left;padding:12px;font-size:13px"
+          onclick="doSaveToLibFromCtx(true)">
+          ✏ <b>Обновить существующую</b><br>
+          <span style="font-family:Inter,sans-serif;font-size:11px;color:rgba(42,42,40,0.55);font-weight:400">перезаписать педагога/описание/длительность</span>
+        </button>
+        <button class="btn" style="text-align:left;padding:12px;font-size:13px"
+          onclick="doSaveToLibFromCtx(false)">
+          ＋ <b>Создать копию</b><br>
+          <span style="font-family:Inter,sans-serif;font-size:11px;color:rgba(42,42,40,0.55);font-weight:400">добавится отдельной строкой (например для другого педагога)</span>
+        </button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal();openSlotMenu('${weekId}',${lIdx},${sIdx})">отмена</button>
+      </div>
+    `);
+  } else {
+    // Сразу добавляем
+    doSaveToLib(item, null, weekId, lIdx, sIdx);
+  }
+}
+
+function doSaveToLibFromCtx(isUpdate) {
+  const item = window._pendingLibItem;
+  const rowIdx = isUpdate ? window._pendingLibRowIdx : null;
+  const ctx = window._pendingSlotCtx;
+  if (!item || !ctx) return;
+  doSaveToLib(item, rowIdx, ctx.weekId, ctx.lIdx, ctx.sIdx);
+}
+
+async function doSaveToLib(item, existingRowIdx, weekId, lIdx, sIdx) {
+  const isUpdate = !!existingRowIdx;
+  openModal(`<h2><span class="loader"></span> ${isUpdate ? 'Обновляю в библиотеке…' : 'Добавляю в библиотеку…'}</h2>`);
+  try {
+    const payload = {
+      action: isUpdate ? 'updateLibraryItem' : 'addLibraryItem',
+      project: PROJECT_TYPE,
+      item
+    };
+    if (isUpdate) payload.rowIdx = existingRowIdx;
+    const r = await fetch(LIBRARY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'API error');
+
+    await loadLibrary();
+    closeModal();
+    toast(isUpdate ? '✓ Тема обновлена в библиотеке' : '✓ Тема добавлена в библиотеку', 'success');
+    // Возвращаемся в карточку слота
+    openSlotMenu(weekId, lIdx, sIdx);
+  } catch(e) {
+    closeModal();
+    toast('Ошибка: ' + e.message, 'error');
+    openSlotMenu(weekId, lIdx, sIdx);
+  }
 }
 
 function clearSlot(weekId, lIdx, sIdx) {
