@@ -1988,6 +1988,7 @@ function openSlotMenu(weekId, lIdx, sIdx) {
       <button class="btn btn-ghost btn-sm" onclick="aiExpandDescription('${weekId}',${lIdx},${sIdx})">✨ ИИ: расширить описание</button>
       <button class="btn btn-ghost btn-sm" onclick="openLibForSlot('${weekId}',${lIdx},${sIdx})">📚 из библиотеки</button>
       <button class="btn btn-ghost btn-sm" onclick="saveSlotToLibrary('${weekId}',${lIdx},${sIdx})">💾 в библиотеку</button>
+      <button class="btn btn-ghost btn-sm" onclick="openCrmDispatchForm('${weekId}',${lIdx},${sIdx})">📤 в Альфа CRM ${slot.crmGroupId ? '✓' : ''}</button>
     </div>
 
     <div class="modal-actions">
@@ -3163,6 +3164,395 @@ function startHeartbeat() {
       });
     } catch(e) {}
   }, SESSION_HEARTBEAT_MS);
+}
+
+// ============================================================
+// АЛЬФА CRM ИНТЕГРАЦИЯ (UI)
+// ============================================================
+const ALFA_BRANCH_ID = 5;  // филиал «Интенсивы»
+let _crmReferenceCache = null;  // справочники кешируем после первой загрузки
+
+// Получить справочники Альфы (педагоги, предметы, локации, аудитории и т.д.)
+async function loadCrmReference(force) {
+  if (_crmReferenceCache && !force) return _crmReferenceCache;
+  const r = await fetch(LIBRARY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'crmReference', branchId: ALFA_BRANCH_ID })
+  });
+  const data = await r.json();
+  if (!data.ok) throw new Error(data.error || 'не удалось получить справочники');
+  _crmReferenceCache = data.reference || {};
+  return _crmReferenceCache;
+}
+
+// Главная точка входа: открыть форму отправки слота в Альфу
+async function openCrmDispatchForm(weekId, lIdx, sIdx) {
+  const w = findWeek(weekId); if (!w) return;
+  const slot = w.locations[lIdx].slots[sIdx];
+
+  if (!slot.theme) { toast('Сначала укажите тему слота', 'error'); return; }
+  if (!slot.time) { toast('Укажите время слота', 'error'); return; }
+  if (!w.locations[lIdx].dateRange) { toast('Укажите даты недели', 'error'); return; }
+
+  // Парсим даты заранее, чтобы валидировать
+  const dates = parseSlotDateRange(w.locations[lIdx].dateRange, state.title);
+  if (!dates || dates.length === 0) {
+    toast('Не получилось распарсить даты «' + w.locations[lIdx].dateRange + '». Должно быть формата «1 - 5 июня»', 'error');
+    return;
+  }
+
+  // Загружаем справочники
+  openModal(`<h2><span class="loader"></span> Загружаю справочники Альфа CRM…</h2>`);
+  let ref;
+  try {
+    ref = await loadCrmReference();
+  } catch(e) {
+    closeModal();
+    toast('Ошибка: ' + e.message, 'error');
+    return;
+  }
+
+  // Если уже отправляли — пробуем найти эту группу. Иначе ищем по имени.
+  let existingGroup = null;
+  let existingMode = null;  // 'this' (этот слот уже привязан) | 'name-collision' (другая группа с таким именем)
+  if (slot.crmGroupId) {
+    const found = (await crmFetchFindGroup(slot.theme)).groups || [];
+    existingGroup = found.find(g => String(g.id) === String(slot.crmGroupId)) || found[0] || null;
+    existingMode = existingGroup ? 'this' : null;
+  } else {
+    const found = (await crmFetchFindGroup(slot.theme)).groups || [];
+    if (found.length > 0) {
+      existingGroup = found[0];
+      existingMode = 'name-collision';
+    }
+  }
+
+  if (existingMode === 'this') {
+    // Уже отправляли этот слот — спрашиваем что делать
+    openModal(`
+      <h2>Этот слот уже в Альфа CRM</h2>
+      <p>Группа «<b>${escapeHtml(existingGroup.name || slot.theme)}</b>» уже создана (id ${existingGroup.id}).</p>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+        <button class="btn" style="text-align:left;padding:12px;font-size:13px"
+          onclick="proceedCrmForm('${weekId}',${lIdx},${sIdx},'update',${existingGroup.id})">
+          ✏ <b>Обновить существующую</b><br>
+          <span style="font-family:Inter,sans-serif;font-size:11px;color:rgba(42,42,40,0.55);font-weight:400">перезаписать педагога/даты/расписание</span>
+        </button>
+        <button class="btn" style="text-align:left;padding:12px;font-size:13px"
+          onclick="proceedCrmForm('${weekId}',${lIdx},${sIdx},'create',null)">
+          ＋ <b>Создать новую</b><br>
+          <span style="font-family:Inter,sans-serif;font-size:11px;color:rgba(42,42,40,0.55);font-weight:400">копия с тем же именем — отдельной группой</span>
+        </button>
+      </div>
+      <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">отмена</button></div>
+    `);
+  } else if (existingMode === 'name-collision') {
+    openModal(`
+      <h2>Похожая группа уже есть</h2>
+      <p>В Альфе уже есть группа с именем «<b>${escapeHtml(existingGroup.name)}</b>» (id ${existingGroup.id}).</p>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+        <button class="btn" style="text-align:left;padding:12px;font-size:13px"
+          onclick="proceedCrmForm('${weekId}',${lIdx},${sIdx},'update',${existingGroup.id})">
+          ✏ <b>Обновить существующую</b><br>
+          <span style="font-family:Inter,sans-serif;font-size:11px;color:rgba(42,42,40,0.55);font-weight:400">привязать к этому слоту и обновить</span>
+        </button>
+        <button class="btn" style="text-align:left;padding:12px;font-size:13px"
+          onclick="proceedCrmForm('${weekId}',${lIdx},${sIdx},'create',null)">
+          ＋ <b>Создать новую</b><br>
+          <span style="font-family:Inter,sans-serif;font-size:11px;color:rgba(42,42,40,0.55);font-weight:400">отдельная группа с тем же именем</span>
+        </button>
+      </div>
+      <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">отмена</button></div>
+    `);
+  } else {
+    // Сразу к форме
+    proceedCrmForm(weekId, lIdx, sIdx, 'create', null);
+  }
+}
+
+async function crmFetchFindGroup(name) {
+  try {
+    const r = await fetch(LIBRARY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'crmFindGroup', branchId: ALFA_BRANCH_ID, name: name })
+    });
+    return await r.json();
+  } catch(e) {
+    return { ok: false, groups: [], error: String(e.message || e) };
+  }
+}
+
+function proceedCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
+  const w = findWeek(weekId); if (!w) return;
+  const slot = w.locations[lIdx].slots[sIdx];
+  const ref = _crmReferenceCache;
+
+  const dates = parseSlotDateRange(w.locations[lIdx].dateRange, state.title);
+  const time = parseTimeForCrm(slot.time);
+
+  // Помощник для опций
+  const opts = (arr, selected, labelKey) => {
+    labelKey = labelKey || 'name';
+    return '<option value="">— выберите —</option>' + (arr || []).map(it =>
+      `<option value="${escapeHtml(String(it.id))}" ${String(it.id)===String(selected)?'selected':''}>${escapeHtml(it[labelKey] || ('id ' + it.id))}</option>`
+    ).join('');
+  };
+
+  // Угадываем педагога по имени из слота
+  const teacherGuess = guessTeacherId(slot.teacher, ref.teachers || []);
+
+  // Если филиал пустой — предупреждаем и не открываем форму
+  if (!ref.teachers || !ref.teachers.length) {
+    openModal(`
+      <h2>⚠ В филиале «Интенсивы» нет педагогов</h2>
+      <p>Чтобы создавать интенсивы через Альфа CRM, нужно сначала привязать педагогов к филиалу 5.</p>
+      <p style="font-family:Inter,sans-serif;font-size:12px;color:rgba(42,42,40,0.6)">
+        В Альфе откройте карточку педагога → в поле «Филиалы» добавьте «Интенсивы» (рядом с уже стоящими филиалами).
+        После этого вернитесь сюда и нажмите кнопку ещё раз.
+      </p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">закрыть</button>
+        <button class="btn btn-ghost" onclick="loadCrmReference(true).then(()=>proceedCrmForm('${weekId}',${lIdx},${sIdx},'${mode}',${existingGroupId || 'null'}))">🔄 проверить ещё раз</button>
+      </div>
+    `);
+    return;
+  }
+  if (!ref.locations || !ref.locations.length) {
+    openModal(`
+      <h2>⚠ В филиале «Интенсивы» нет локаций</h2>
+      <p>Нужно создать в Альфе локации для филиала 5 (адреса проведения интенсивов).</p>
+      <p style="font-family:Inter,sans-serif;font-size:12px;color:rgba(42,42,40,0.6)">
+        В Альфе: Настройки → Локации → Создать. Укажите филиал «Интенсивы».
+      </p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">закрыть</button>
+        <button class="btn btn-ghost" onclick="loadCrmReference(true).then(()=>proceedCrmForm('${weekId}',${lIdx},${sIdx},'${mode}',${existingGroupId || 'null'}))">🔄 проверить ещё раз</button>
+      </div>
+    `);
+    return;
+  }
+
+  // Опциональные поля — показываем только если в Альфе они настроены
+  const hasStatus = ref.statuses && ref.statuses.length > 0;
+  const hasLevel = ref.levels && ref.levels.length > 0;
+
+  openModal(`
+    <h2>📤 ${mode === 'update' ? 'Обновить' : 'Создать'} в Альфа CRM</h2>
+    <p style="font-family:Inter,sans-serif;font-size:12px;color:rgba(42,42,40,0.6);margin-bottom:14px">
+      <b>${escapeHtml(slot.theme)}</b><br>
+      ${escapeHtml(state.locations[lIdx])} · ${escapeHtml(w.locations[lIdx].dateRange)} · ${escapeHtml(slot.time)}
+      ${slot.teacher ? ' · ' + escapeHtml(slot.teacher) : ''}
+    </p>
+
+    <label>Педагог <span style="color:rgba(42,42,40,0.5)">(основной)</span></label>
+    <select id="crm-teacher">${opts(ref.teachers, teacherGuess)}</select>
+
+    <label>Предмет</label>
+    <select id="crm-subject">${opts(ref.subjects, null)}</select>
+
+    <label>Локация в Альфе</label>
+    <select id="crm-location">${opts(ref.locations, null)}</select>
+
+    <label>Аудитория <span style="color:rgba(42,42,40,0.5)">(опционально)</span></label>
+    <select id="crm-room">${opts(ref.rooms, null)}</select>
+
+    <label>Тип урока</label>
+    <select id="crm-lesson-type">${opts(ref.lesson_types, null)}</select>
+
+    ${hasStatus ? `
+      <label>Статус группы</label>
+      <select id="crm-status">${opts(ref.statuses, null)}</select>
+    ` : '<input type="hidden" id="crm-status" value="">'}
+
+    ${hasLevel ? `
+      <label>Уровень группы <span style="color:rgba(42,42,40,0.5)">(опционально)</span></label>
+      <select id="crm-level">${opts(ref.levels, null)}</select>
+    ` : '<input type="hidden" id="crm-level" value="">'}
+
+    <label>Расписание уроков</label>
+    <div id="crm-lessons-preview" style="background:var(--paper-warm);border-radius:6px;padding:10px;font-family:Inter,sans-serif;font-size:12px;line-height:1.6">
+      ${dates.map((d, i) =>
+        `<div>День ${i+1}: <b>${formatDateForRu(d)}</b> · ${escapeHtml(time.from)} – ${escapeHtml(time.to)} (${time.duration} мин)</div>`
+      ).join('')}
+    </div>
+
+    <label style="margin-top:8px">Тема каждого урока (можно подменить)</label>
+    <input type="text" id="crm-topic" value="${escapeHtml(slot.theme)}" placeholder="${escapeHtml(slot.theme)}">
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">отмена</button>
+      <button class="btn btn-primary" onclick="submitCrmForm('${weekId}',${lIdx},${sIdx},'${mode}',${existingGroupId || 'null'})">
+        ${mode === 'update' ? '🔄 обновить в Альфе' : '📤 создать в Альфе'}
+      </button>
+    </div>
+  `);
+}
+
+async function submitCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
+  const w = findWeek(weekId); if (!w) return;
+  const slot = w.locations[lIdx].slots[sIdx];
+
+  const teacherId = document.getElementById('crm-teacher').value;
+  const subjectId = document.getElementById('crm-subject').value;
+  const locationId = document.getElementById('crm-location').value;
+  const roomId = document.getElementById('crm-room').value;
+  const lessonTypeId = document.getElementById('crm-lesson-type').value;
+  const statusId = document.getElementById('crm-status').value;
+  const levelId = document.getElementById('crm-level').value;
+  const topic = document.getElementById('crm-topic').value.trim() || slot.theme;
+
+  if (!teacherId) { toast('Выберите педагога', 'error'); return; }
+  if (!subjectId) { toast('Выберите предмет', 'error'); return; }
+  if (!locationId) { toast('Выберите локацию в Альфе', 'error'); return; }
+  if (!lessonTypeId) { toast('Выберите тип урока', 'error'); return; }
+
+  const dates = parseSlotDateRange(w.locations[lIdx].dateRange, state.title);
+  const time = parseTimeForCrm(slot.time);
+
+  const firstDate = dates[0];
+  const lastDate = dates[dates.length-1];
+  const isoDate = (d) => d.toISOString().slice(0, 10);
+
+  const groupPayload = {
+    name: slot.theme,
+    note: 'Автоматически создано через Прознание+Coddy. Тема: ' + slot.theme +
+          (slot.description ? '\n\n' + slot.description : ''),
+    teacher_id: parseInt(teacherId),
+    branch_id: ALFA_BRANCH_ID,
+    b_date_from: isoDate(firstDate),
+    b_date_to: isoDate(firstDate),
+    e_date_from: isoDate(lastDate),
+    e_date_to: isoDate(lastDate)
+  };
+  if (statusId) groupPayload.status_id = parseInt(statusId);
+  if (levelId) groupPayload.level_id = parseInt(levelId);
+
+  const lessons = dates.map(d => {
+    const payload = {
+      date_from: isoDate(d),
+      date_to: isoDate(d),
+      time_from: time.from,
+      time_to: time.to,
+      duration: time.duration,
+      teacher_id: parseInt(teacherId),
+      subject_id: parseInt(subjectId),
+      lesson_type_id: parseInt(lessonTypeId),
+      location_ids: [parseInt(locationId)],
+      topic: topic
+    };
+    if (roomId) payload.room_ids = [parseInt(roomId)];
+    return payload;
+  });
+
+  openModal(`<h2><span class="loader"></span> Отправляю в Альфа CRM…</h2><p>Создаём группу и ${lessons.length} ${pluralizeDays(lessons.length).replace('день','урок').replace('дня','урока').replace('дней','уроков')}…</p>`);
+
+  try {
+    const r = await fetch(LIBRARY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'crmDispatchSlot',
+        branchId: ALFA_BRANCH_ID,
+        mode: mode,
+        groupId: existingGroupId,
+        group: groupPayload,
+        lessons: lessons
+      })
+    });
+    const data = await r.json();
+
+    if (data.ok || (data.groupId && data.lessonsCreated === data.totalLessons)) {
+      pushUndo();
+      slot.crmGroupId = data.groupId;
+      slot.crmSyncedAt = new Date().toISOString();
+      saveLocal();
+      closeModal();
+      render();
+      toast(`✓ В Альфе: группа #${data.groupId}, уроков создано ${data.lessonsCreated}/${data.totalLessons}`, 'success');
+    } else if (data.groupId) {
+      // Группа создана, но часть уроков с ошибкой
+      pushUndo();
+      slot.crmGroupId = data.groupId;
+      saveLocal();
+      closeModal();
+      render();
+      toast(`⚠ Группа #${data.groupId} создана, но ${(data.totalLessons-data.lessonsCreated)} уроков не создалось. См. консоль.`, 'error');
+      console.warn('CRM lesson errors:', data.errors);
+    } else {
+      closeModal();
+      toast('Ошибка: ' + (data.error || JSON.stringify(data)), 'error');
+    }
+  } catch(e) {
+    closeModal();
+    toast('Сетевая ошибка: ' + e.message, 'error');
+  }
+}
+
+// Парсинг даты вида "1 - 5 июня" → массив объектов Date.
+// Год определяется из заголовка публикации (state.title), типа «Интенсивы лето 2026».
+function parseSlotDateRange(dateRange, title) {
+  if (!dateRange) return [];
+  // Извлекаем год из title или текущий
+  let year = (new Date()).getFullYear();
+  const ym = String(title || '').match(/(20\d{2})/);
+  if (ym) year = parseInt(ym[1]);
+
+  // Извлекаем 2 числа и месяц
+  const m = String(dateRange).match(/(\d+)\s*[-–]\s*(\d+)\s+([а-яё]+)/i);
+  if (!m) return [];
+  const a = parseInt(m[1]);
+  const b = parseInt(m[2]);
+  const monthRu = m[3].toLowerCase();
+  const months = {
+    'январ': 0, 'феврал': 1, 'март': 2, 'апрел': 3, 'мая': 4, 'мае': 4, 'май': 4,
+    'июн': 5, 'июл': 6, 'август': 7, 'сентябр': 8, 'октябр': 9, 'ноябр': 10, 'декабр': 11
+  };
+  let month = -1;
+  Object.keys(months).forEach(k => { if (monthRu.startsWith(k)) month = months[k]; });
+  if (month < 0) return [];
+
+  const dates = [];
+  if (b >= a) {
+    for (let d = a; d <= b; d++) dates.push(new Date(year, month, d));
+  } else {
+    // переход через месяц: a-30 текущего, 1-b следующего
+    const lastDay = new Date(year, month+1, 0).getDate();
+    for (let d = a; d <= lastDay; d++) dates.push(new Date(year, month, d));
+    for (let d = 1; d <= b; d++) dates.push(new Date(year, month+1, d));
+  }
+  return dates;
+}
+
+// "11:00-13:00" / "11-13" / "10:30-13" → { from: "11:00", to: "13:00", duration: 120 }
+function parseTimeForCrm(timeStr) {
+  if (!timeStr) return { from: '11:00', to: '13:00', duration: 120 };
+  const m = String(timeStr).match(/(\d{1,2})(?::(\d{2}))?\s*[-–]\s*(\d{1,2})(?::(\d{2}))?/);
+  if (!m) return { from: '11:00', to: '13:00', duration: 120 };
+  const h1 = parseInt(m[1]) || 0, m1 = parseInt(m[2]) || 0;
+  const h2 = parseInt(m[3]) || 0, m2 = parseInt(m[4]) || 0;
+  const pad = (n) => String(n).padStart(2, '0');
+  const from = pad(h1) + ':' + pad(m1);
+  const to = pad(h2) + ':' + pad(m2);
+  const duration = (h2*60+m2) - (h1*60+m1);
+  return { from: from, to: to, duration: duration > 0 ? duration : 120 };
+}
+
+function formatDateForRu(d) {
+  const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  return d.getDate() + ' ' + months[d.getMonth()];
+}
+
+// Угадываем teacher_id по строке имени (фамилия + инициал)
+function guessTeacherId(teacherName, teachers) {
+  if (!teacherName || !teachers || !teachers.length) return null;
+  const t = teacherName.toLowerCase().trim();
+  // Сначала точное совпадение фамилии
+  const surname = t.split(/\s+/)[0];
+  let match = teachers.find(p => String(p.name || '').toLowerCase().includes(surname));
+  if (match) return match.id;
+  return null;
 }
 
 // Старт
