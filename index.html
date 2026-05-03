@@ -522,6 +522,26 @@
   .info-btn:hover { color: var(--ink); transform: scale(1.15); }
   .info-btn.has-desc { color: rgba(42,42,40,0.7); }
   .info-btn.has-desc:hover { color: var(--ink); }
+  .lib-dir-chip {
+    background: transparent;
+    border: 0.5px solid rgba(42,42,40,0.25);
+    border-radius: 12px;
+    padding: 3px 10px;
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    cursor: pointer;
+    color: rgba(42,42,40,0.7);
+    transition: background 0.1s, border-color 0.1s;
+  }
+  .lib-dir-chip:hover {
+    background: var(--paper-warm);
+    border-color: var(--ink);
+  }
+  .lib-dir-chip.active {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
   .crm-badge {
     flex-shrink: 0;
     margin-left: 4px;
@@ -1728,8 +1748,61 @@ function showSlotProgram(weekId, lIdx, sIdx) {
 
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">закрыть</button>
+      <button class="btn btn-ghost" onclick="showMobilePreview('${weekId}',${lIdx},${sIdx})" title="как видит родитель на телефоне">📱 превью</button>
       <button class="btn btn-ghost" onclick="aiExpandDescription('${weekId}',${lIdx},${sIdx})">✨ ${hasDesc ? 'переписать через ИИ' : 'сгенерировать'}</button>
       <button class="btn btn-primary" onclick="closeModal();openSlotMenu('${weekId}',${lIdx},${sIdx})">✏ редактировать</button>
+    </div>
+  `);
+}
+
+// Превью попапа в мобильной ширине — как видит родитель на телефоне
+function showMobilePreview(weekId, lIdx, sIdx) {
+  const w = findWeek(weekId); if (!w) return;
+  const slot = w.locations[lIdx].slots[sIdx];
+  const locName = state.locations[lIdx];
+  const locAddr = (state.locationAddresses && state.locationAddresses[lIdx]) || '';
+  const locDet = (state.locationDetails && state.locationDetails[lIdx]) || {};
+  const dateRange = w.locations[lIdx].dateRange;
+  const dirClass = directionToClass(slot.direction);
+  const cost = slot.cost ? slot.cost + 'р' : '—';
+  const hasDesc = !!(slot.description && slot.description.trim());
+  const descHtml = hasDesc
+    ? escapeHtml(slot.description).replace(/\n/g, '<br>')
+    : '<em style="color:rgba(42,42,40,0.4)">Программа уточняется</em>';
+  const formUrl = slot.crmFormUrl || (slot.crmGroupId ? buildCrmLeadFormUrl(slot.crmGroupId) : '');
+
+  openModal(`
+    <div style="font-family:Inter,sans-serif;font-size:11px;color:rgba(42,42,40,0.55);text-align:center;margin-bottom:8px">
+      📱 как видят родители на мобильном
+    </div>
+    <div style="max-width:340px;margin:0 auto;padding:18px;background:var(--paper);border:1px solid var(--ink);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12)">
+      <h2 style="margin:0 0 4px;font-family:Geologica,sans-serif;font-size:18px">${escapeHtml(slot.theme || '—')}</h2>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+        ${slot.direction ? `<span class="dir-chip ${dirClass}" style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500">${escapeHtml(slot.direction)}</span>` : ''}
+        <span style="font-size:11px;color:rgba(42,42,40,0.6)">${escapeHtml(locName)}${locAddr ? ' (' + escapeHtml(locAddr) + ')' : ''} · ${escapeHtml(dateRange || '')} · ${escapeHtml(slot.time || '')}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:12px;margin-bottom:14px">
+        <span style="color:rgba(42,42,40,0.55)">Педагог</span><span>${escapeHtml(slot.teacher || '—')}</span>
+        ${locAddr ? `<span style="color:rgba(42,42,40,0.55)">Адрес</span><span>${escapeHtml(locAddr)}</span>` : ''}
+        ${locDet.groupSize ? `<span style="color:rgba(42,42,40,0.55)">Группа</span><span>${escapeHtml(locDet.groupSize)}</span>` : ''}
+        <span style="color:rgba(42,42,40,0.55)">Стоимость</span><span style="font-weight:500">${escapeHtml(cost)}</span>
+      </div>
+      <div style="border-top:1px solid rgba(42,42,40,0.1);padding-top:12px">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:8px">Программа интенсива</div>
+        <div style="font-family:Geologica,sans-serif;font-size:13px;line-height:1.55;color:var(--ink)">${descHtml}</div>
+      </div>
+      ${renderBringWithYouBlock(state.bringWithYou)}
+      ${renderContactsBlock(locDet)}
+      ${formUrl ? `
+        <a href="${escapeHtml(formUrl)}" target="_blank"
+           style="display:block;margin-top:14px;padding:12px;background:var(--ink);color:var(--paper);text-align:center;border-radius:6px;text-decoration:none;font-size:14px;font-weight:500">
+          ✏ записаться на интенсив
+        </a>
+      ` : '<div style="margin-top:14px;padding:8px;background:rgba(255,200,100,0.2);border-radius:4px;font-size:11px;color:rgba(42,42,40,0.7);text-align:center;">⚠ кнопка «записаться» не появится: слот не отправлен в Альфа CRM</div>'}
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal();showSlotProgram('${weekId}',${lIdx},${sIdx})">← назад</button>
+      <button class="btn btn-primary" onclick="closeModal()">закрыть</button>
     </div>
   `);
 }
@@ -2292,11 +2365,26 @@ function openLibForSlot(weekId, lIdx, sIdx) {
   `);
 }
 
-function filterLibList(q) {
-  q = q.toLowerCase().trim();
+function filterLibList(q, dir) {
+  q = (q || '').toLowerCase().trim();
+  // если dir передали — обновляем активный фильтр; иначе берём текущий
+  if (dir !== undefined) window._libFilterDir = dir;
+  const activeDir = window._libFilterDir || '';
+  let visible = 0;
   document.querySelectorAll('#lib-list .lib-suggestion').forEach(el => {
     const txt = el.textContent.toLowerCase();
-    el.style.display = (!q || txt.includes(q)) ? '' : 'none';
+    const itemDir = (el.dataset.dir || '').toLowerCase();
+    const matchesText = !q || txt.includes(q);
+    const matchesDir = !activeDir || itemDir === activeDir.toLowerCase();
+    const show = matchesText && matchesDir;
+    el.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  const counter = document.getElementById('lib-counter');
+  if (counter) counter.textContent = visible + ' из ' + LIBRARY.length;
+  // Подсветить активный чип
+  document.querySelectorAll('.lib-dir-chip').forEach(el => {
+    el.classList.toggle('active', el.dataset.dir === activeDir);
   });
 }
 
@@ -2333,7 +2421,7 @@ function openLibraryPanel() {
     return;
   }
   const items = LIBRARY.map((it, idx) => `
-    <div class="lib-suggestion" style="position:relative">
+    <div class="lib-suggestion" data-dir="${escapeHtml(it.direction || '')}" style="position:relative">
       <div class="name">${escapeHtml(it.template || it.name || '—')}</div>
       <div class="meta">${escapeHtml(it.teacher || '')}${it.direction ? ' · ' + escapeHtml(it.direction) : ''}${it.age ? ' · ' + escapeHtml(it.age) : ''}${it.duration ? ' · ' + it.duration + ' мин' : ''}</div>
       ${it.description ? `<div class="meta" style="margin-top:4px">${escapeHtml(it.description.slice(0,200))}${it.description.length>200?'…':''}</div>` : ''}
@@ -2343,10 +2431,19 @@ function openLibraryPanel() {
       </div>
     </div>
   `).join('');
+
+  // Уникальные направления для чипов фильтра
+  const allDirs = Array.from(new Set(LIBRARY.map(it => it.direction).filter(Boolean))).sort();
+  const dirChips = '<button class="lib-dir-chip active" data-dir="" onclick="filterLibList(document.getElementById(\'lib-filter\').value, \'\')">все</button>' +
+    allDirs.map(d => `<button class="lib-dir-chip" data-dir="${escapeHtml(d)}" onclick="filterLibList(document.getElementById('lib-filter').value, '${escapeHtml(d)}')">${escapeHtml(d)}</button>`).join('');
+
   openModal(`
     <h2>📚 Библиотека интенсивов</h2>
-    <p>${LIBRARY.length} тем. Добавляйте, редактируйте и удаляйте прямо здесь.</p>
-    <input type="text" id="lib-filter" placeholder="🔎 поиск" oninput="filterLibList(this.value)" style="width:100%;margin-bottom:10px">
+    <p style="font-size:12px;color:rgba(42,42,40,0.6);margin-bottom:10px">
+      <span id="lib-counter">${LIBRARY.length} из ${LIBRARY.length}</span> · добавляйте, редактируйте, удаляйте
+    </p>
+    <input type="text" id="lib-filter" placeholder="🔎 поиск по названию, педагогу, описанию" oninput="filterLibList(this.value)" style="width:100%;margin-bottom:8px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="lib-dir-chips">${dirChips}</div>
     <div id="lib-list">${items}</div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="reloadLibrary()">↻ обновить</button>
@@ -2355,6 +2452,8 @@ function openLibraryPanel() {
       <button class="btn btn-ghost" onclick="closeModal()">закрыть</button>
     </div>
   `);
+  // Сбрасываем фильтр направления при открытии
+  window._libFilterDir = '';
 }
 
 // Форма для добавления/правки темы. idx = индекс в LIBRARY (если правим), иначе undefined
@@ -3433,6 +3532,13 @@ function proceedCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
     ).join('');
   };
 
+  // Опции для педагога с пометкой «занят» по конфликтам
+  const teacherOpts = '<option value="">— выберите —</option>' + (ref.teachers || []).map(it => {
+    const conflict = teacherConflicts[String(it.id)];
+    const label = it.name + (conflict ? '  ⚠ занят: ' + conflict : '');
+    return `<option value="${escapeHtml(String(it.id))}" ${String(it.id)===String(teacherGuess)?'selected':''}>${escapeHtml(label)}</option>`;
+  }).join('');
+
   // Угадываем педагога по имени из слота
   const teacherGuess = slot.alfaTeacherId || guessTeacherId(slot.teacher, ref.teachers || []);
   // Предмет: сначала из слота (через библиотеку), потом из дефолтов проекта,
@@ -3453,6 +3559,10 @@ function proceedCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
   }
   const statusGuess = def.statusId || null;
   const levelGuess = def.levelId || null;
+
+  // Список педагогов с пометкой «занят» если они стоят в другом слоте на пересекающиеся даты+время
+  const teacherConflicts = findTeacherConflicts(weekId, lIdx, sIdx, ref.teachers || []);
+  window._crmTeacherConflicts = teacherConflicts;
 
   // Если филиал пустой — предупреждаем и не открываем форму
   if (!ref.teachers || !ref.teachers.length) {
@@ -3498,7 +3608,10 @@ function proceedCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
     </p>
 
     <label>Педагог <span style="color:rgba(42,42,40,0.5)">(основной)</span></label>
-    <select id="crm-teacher">${opts(ref.teachers, teacherGuess)}</select>
+    <select id="crm-teacher" onchange="checkTeacherConflict(this.value)">${teacherOpts}</select>
+    <div id="crm-teacher-warning" style="font-family:Inter,sans-serif;font-size:11px;color:#A33;margin-top:-4px;margin-bottom:8px;display:${teacherGuess && teacherConflicts[String(teacherGuess)] ? 'block' : 'none'}">
+      ${teacherGuess && teacherConflicts[String(teacherGuess)] ? '⚠ Этот педагог уже занят: ' + escapeHtml(teacherConflicts[String(teacherGuess)]) : ''}
+    </div>
 
     <label>Предмет</label>
     <select id="crm-subject">${opts(ref.subjects, subjectGuess)}</select>
@@ -3562,9 +3675,12 @@ function buildCrmLeadFormUrl(groupId) {
   return 'https://' + ALFA_DOMAIN + '/common/' + ALFA_BRANCH_ID + '/lead/create?gid=' + groupId;
 }
 
-// Дефолтный note для CRM группы — обрезает описание до 255 симв
+// Дефолтный note для CRM группы — обрезает описание до 255 симв.
+// Включает стоимость и ключевую часть описания.
 function buildDefaultCrmNote(slot) {
-  let note = 'Через Прознание+Coddy. ' + (slot.theme || '');
+  const cost = slot.cost ? (slot.cost + 'р/занятие') : '';
+  let note = 'Прознание+Coddy. ' + (slot.theme || '');
+  if (cost) note += ' (' + cost + ')';
   if (slot.description) {
     const desc = slot.description.replace(/\s+/g, ' ').trim();
     const remain = 250 - note.length - 3;
@@ -3740,7 +3856,67 @@ async function submitCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
   }
 }
 
-// Парсинг даты вида "1 - 5 июня" → массив объектов Date.
+// Находит конфликты по педагогам: возвращает {alfaTeacherId: "описание конфликта"} —
+// для всех педагогов, которые уже стоят в другом слоте на пересекающиеся даты+время.
+function findTeacherConflicts(currentWeekId, currentLIdx, currentSIdx, teachers) {
+  const conflicts = {};  // alfaTeacherId → "8 июн, 11-13 в Кластер: ИИ для детей"
+  const cur = findWeek(currentWeekId);
+  if (!cur) return conflicts;
+  const curLoc = cur.locations[currentLIdx];
+  if (!curLoc) return conflicts;
+  const curSlot = curLoc.slots[currentSIdx];
+  if (!curSlot || !curSlot.time) return conflicts;
+  const curDates = parseSlotDateRange(curLoc.dateRange, state.title);
+  if (!curDates.length) return conflicts;
+  const curTime = parseTimeForCrm(curSlot.time);
+
+  // Собираем set дат текущего слота
+  const curDateSet = new Set(curDates.map(d => d.toISOString().slice(0, 10)));
+
+  state.weeks.forEach(w => {
+    w.locations.forEach((loc, lIdx) => {
+      const otherDates = parseSlotDateRange(loc.dateRange, state.title);
+      // Проверяем пересечение дат
+      const hasOverlap = otherDates.some(d => curDateSet.has(d.toISOString().slice(0, 10)));
+      if (!hasOverlap) return;
+
+      loc.slots.forEach((s, sIdx) => {
+        // Это сам текущий слот?
+        if (w.id === currentWeekId && lIdx === currentLIdx && sIdx === currentSIdx) return;
+        if (!s.alfaTeacherId) return;  // Без id педагога Альфы — не учитываем
+        if (!s.time) return;
+
+        // Пересечение по времени?
+        const sTime = parseTimeForCrm(s.time);
+        const overlapTime = !(curTime.to <= sTime.from || sTime.to <= curTime.from);
+        if (!overlapTime) return;
+
+        const id = String(s.alfaTeacherId);
+        if (conflicts[id]) return;  // уже отмечен — не дублируем
+        conflicts[id] = (s.theme || 'занятие') + ' (' + (state.locations[lIdx] || '') + ', ' + s.time + ')';
+      });
+    });
+  });
+
+  return conflicts;
+}
+
+// Обновить предупреждение под выпадашкой педагога
+function checkTeacherConflict(teacherId) {
+  const wrap = document.getElementById('crm-teacher-warning');
+  if (!wrap) return;
+  // Берём конфликты из глобального места
+  const conflicts = window._crmTeacherConflicts || {};
+  if (teacherId && conflicts[String(teacherId)]) {
+    wrap.style.display = 'block';
+    wrap.textContent = '⚠ Этот педагог уже занят: ' + conflicts[String(teacherId)];
+  } else {
+    wrap.style.display = 'none';
+    wrap.textContent = '';
+  }
+}
+
+
 // Год определяется из заголовка публикации (state.title), типа «Интенсивы лето 2026».
 function parseSlotDateRange(dateRange, title) {
   if (!dateRange) return [];
