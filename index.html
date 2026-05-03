@@ -208,6 +208,10 @@
     border-radius: 4px;
     padding: 10px 14px;
     text-align: center;
+    transition: background 0.15s;
+  }
+  .location-edit:hover {
+    background: var(--yellow-deep);
   }
   .location-edit input {
     background: transparent;
@@ -225,43 +229,27 @@
     outline: 1px solid var(--ink);
     border-radius: 2px;
   }
-  .location-edit input.location-address {
-    margin-top: 2px;
-    font-family: Inter, sans-serif;
-    font-size: 11px;
-    font-weight: 400;
-    font-style: italic;
-    color: rgba(42,42,40,0.65);
-  }
-  .location-edit input.location-address::placeholder {
-    color: rgba(42,42,40,0.3);
-    font-style: italic;
-  }
-  .location-address-btn {
-    display: block;
-    width: 100%;
-    margin-top: 2px;
-    background: transparent;
-    border: 1px dashed rgba(42,42,40,0.2);
-    border-radius: 3px;
-    padding: 3px 8px;
+  .location-addr-line {
+    margin-top: 4px;
     font-family: Inter, sans-serif;
     font-size: 11px;
     font-style: italic;
     color: rgba(42,42,40,0.7);
-    cursor: pointer;
     text-align: center;
-    transition: background 0.15s, border-color 0.15s;
   }
-  .location-address-btn:hover {
-    background: var(--white);
-    border-color: var(--ink);
-    border-style: solid;
-  }
-  .location-address-btn .contact-mark {
-    margin-left: 4px;
+  .location-addr-line .contact-mark {
+    margin-left: 2px;
     font-size: 10px;
     opacity: 0.7;
+  }
+  .location-addr-line .settings-cog {
+    margin-left: 6px;
+    font-style: normal;
+    opacity: 0.4;
+    font-size: 12px;
+  }
+  .location-edit:hover .location-addr-line .settings-cog {
+    opacity: 1;
   }
 
   /* Таблица недель */
@@ -1157,12 +1145,16 @@ function renderLocations() {
     const det = (state.locationDetails && state.locationDetails[i]) || {};
     const hasContacts = !!(det.phone1 || det.phone2 || det.viber1 || det.viber2 || det.groupSize);
     return `
-    <div class="location-edit">
-      <input type="text" value="${escapeHtml(name)}" data-loc-idx="${i}" onchange="renameLocation(${i}, this.value)">
-      <button class="location-address-btn" onclick="openLocationSettings(${i})" title="настройки локации">
-        ${addr ? escapeHtml(addr) : '<span style="opacity:0.5">+ адрес и контакты</span>'}
-        ${hasContacts ? '<span class="contact-mark">📞</span>' : ''}
-      </button>
+    <div class="location-edit" onclick="if(!event.target.closest('input'))openLocationSettings(${i})" style="cursor:pointer">
+      <input type="text" value="${escapeHtml(name)}" data-loc-idx="${i}"
+        onchange="renameLocation(${i}, this.value)"
+        onclick="event.stopPropagation()"
+        title="редактировать название (или кликни мимо для настроек)">
+      <div class="location-addr-line" title="клик — настройки локации, контакты, размер группы">
+        ${addr ? escapeHtml(addr) : '<span style="opacity:0.45">+ адрес и контакты</span>'}
+        ${hasContacts ? ' <span class="contact-mark">📞</span>' : ''}
+        <span class="settings-cog">⚙</span>
+      </div>
     </div>
   `;
   }).join('');
