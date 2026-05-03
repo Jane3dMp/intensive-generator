@@ -627,10 +627,14 @@ function render() {
   html += `<div class="schedule">`;
   let lastMonth = null;
   let lastMarker = null;
+  // Для определения видимости недели на мобиле — учитываем только выбранную локацию
+  const isMobile = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+  const visibleLocIdxs = isMobile ? [_mobileLocIdx] : [0, 1, 2];
+
   state.weeks.forEach((w, wIdx) => {
-    // Пропускаем неделю целиком, если ни в одной локации нет тем
-    const weekHasContent = w.locations.some(loc =>
-      loc.slots && loc.slots.some(slotIsVisible)
+    // Пропускаем неделю целиком, если ни в одной видимой локации нет тем
+    const weekHasContent = visibleLocIdxs.some(li =>
+      w.locations[li] && w.locations[li].slots && w.locations[li].slots.some(slotIsVisible)
     );
     if (!weekHasContent) return;
 
@@ -661,17 +665,23 @@ let _mobileLocIdx = 0;
 function setMobileLoc(idx) {
   _mobileLocIdx = idx;
   try { localStorage.setItem('intensive_view_mobile_loc', String(idx)); } catch(e) {}
-  applyMobileLocClass();
-  document.querySelectorAll('.mobile-loc-tab').forEach((el, i) => {
-    if (i === idx) el.classList.add('active');
-    else el.classList.remove('active');
-  });
+  // Полный re-render — чтобы пересчитать видимые недели и спрятать пустые маркеры
+  if (state) render();
+  else applyMobileLocClass();
 }
 
 function applyMobileLocClass() {
   document.body.classList.remove('mobile-loc-0','mobile-loc-1','mobile-loc-2');
   document.body.classList.add('mobile-loc-' + _mobileLocIdx);
 }
+
+// При повороте экрана / ресайзе — тоже пересчитываем
+window.addEventListener('resize', () => {
+  if (state) {
+    clearTimeout(window._resizeTimer);
+    window._resizeTimer = setTimeout(() => render(), 200);
+  }
+});
 
 function renderViewCell(week, wIdx, loc, lIdx) {
   const hasContent = loc.slots && loc.slots.some(slotIsVisible);
@@ -718,6 +728,7 @@ function showSlotDetails(wIdx, lIdx, sIdx) {
   const s = loc.slots[sIdx]; if (!s) return;
   const locName = state.locations[lIdx];
   const locAddr = (state.locationAddresses && state.locationAddresses[lIdx]) || '';
+  const locDet = (state.locationDetails && state.locationDetails[lIdx]) || {};
   const dirClass = directionToClass(s.direction);
   const cost = s.cost ? s.cost + 'р' : '—';
   const descHtml = (s.description && s.description.trim())
@@ -737,6 +748,7 @@ function showSlotDetails(wIdx, lIdx, sIdx) {
       <span style="color:rgba(42,42,40,0.55)">Педагог</span>
       <span>${escapeHtml(s.teacher || '—')}</span>
       ${locAddr ? `<span style="color:rgba(42,42,40,0.55)">Адрес</span><span>${escapeHtml(locAddr)}</span>` : ''}
+      ${locDet.groupSize ? `<span style="color:rgba(42,42,40,0.55)">Группа</span><span>${escapeHtml(locDet.groupSize)}</span>` : ''}
       <span style="color:rgba(42,42,40,0.55)">Стоимость</span>
       <span style="font-weight:500">${escapeHtml(cost)}</span>
     </div>
@@ -746,9 +758,57 @@ function showSlotDetails(wIdx, lIdx, sIdx) {
       <div style="font-family:Geologica,sans-serif;font-size:14px;line-height:1.55;color:var(--ink)">${descHtml}</div>
     </div>
 
+    ${renderBringWithYouBlock(state.bringWithYou)}
+    ${renderContactsBlock(locDet)}
+
     <button class="modal-close" onclick="closeModal()" style="margin-top:16px">закрыть</button>
   `;
   document.getElementById('modal-overlay').classList.add('show');
+}
+
+function renderBringWithYouBlock(text) {
+  if (!text || !String(text).trim()) return '';
+  const html = escapeHtml(String(text)).replace(/\n/g, '<br>');
+  return `
+    <div style="border-top:1px solid rgba(42,42,40,0.1);padding-top:12px;margin-top:12px">
+      <div style="font-family:Inter,sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:6px">🎒 С собой</div>
+      <div style="font-family:Geologica,sans-serif;font-size:13px;line-height:1.5;color:var(--ink)">${html}</div>
+    </div>
+  `;
+}
+
+function formatViberLink(v) {
+  if (!v) return '';
+  const trimmed = String(v).trim();
+  if (trimmed.startsWith('viber:') || trimmed.startsWith('http')) return trimmed;
+  const digits = trimmed.replace(/[^\d+]/g, '');
+  return 'viber://chat?number=' + encodeURIComponent(digits);
+}
+
+function renderContactsBlock(locDet) {
+  if (!locDet) return '';
+  const phones = [locDet.phone1, locDet.phone2].filter(Boolean);
+  const vibers = [locDet.viber1, locDet.viber2].filter(Boolean);
+  if (!phones.length && !vibers.length) return '';
+  let rows = '';
+  phones.forEach(p => {
+    rows += `<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+      <span style="color:rgba(42,42,40,0.55);font-size:11px;width:60px">телефон</span>
+      <a href="tel:${escapeHtml(p.replace(/[^\d+]/g, ''))}" style="color:var(--ink);text-decoration:none;font-weight:500">${escapeHtml(p)}</a>
+    </div>`;
+  });
+  vibers.forEach(v => {
+    rows += `<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+      <span style="color:rgba(42,42,40,0.55);font-size:11px;width:60px">viber</span>
+      <a href="${escapeHtml(formatViberLink(v))}" style="color:var(--ink);text-decoration:none;font-weight:500">${escapeHtml(v)}</a>
+    </div>`;
+  });
+  return `
+    <div style="border-top:1px solid rgba(42,42,40,0.1);padding-top:12px;margin-top:12px">
+      <div style="font-family:Inter,sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:6px">📞 Записаться</div>
+      <div style="font-family:Inter,sans-serif;font-size:13px">${rows}</div>
+    </div>
+  `;
 }
 
 function closeModal() {
