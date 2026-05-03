@@ -237,6 +237,32 @@
     color: rgba(42,42,40,0.3);
     font-style: italic;
   }
+  .location-address-btn {
+    display: block;
+    width: 100%;
+    margin-top: 2px;
+    background: transparent;
+    border: 1px dashed rgba(42,42,40,0.2);
+    border-radius: 3px;
+    padding: 3px 8px;
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    font-style: italic;
+    color: rgba(42,42,40,0.7);
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .location-address-btn:hover {
+    background: var(--white);
+    border-color: var(--ink);
+    border-style: solid;
+  }
+  .location-address-btn .contact-mark {
+    margin-left: 4px;
+    font-size: 10px;
+    opacity: 0.7;
+  }
 
   /* Таблица недель */
   .schedule {
@@ -834,6 +860,7 @@
     Имя редактора
     <input type="text" id="cfg-editor" oninput="setEditor(this.value)" placeholder="Юля" style="width:120px">
   </label>
+  <button class="btn btn-ghost" onclick="openBringWithYouModal()" style="align-self:flex-end" title="общий список — что взять с собой">🎒 что приносить</button>
 </div>
 
 <div class="locations-edit" id="locations-edit"></div>
@@ -975,6 +1002,12 @@ function makeDefaultState() {
     defaultCost: 40,
     locations: ['Кластер', 'Детали', 'Спутник'],
     locationAddresses: ['Пожарный 19', 'Пожарный 3Б-2', 'Якубовского 19'],
+    locationDetails: [
+      { phone1: '', phone2: '', viber1: '', viber2: '', groupSize: '' },
+      { phone1: '', phone2: '', viber1: '', viber2: '', groupSize: '' },
+      { phone1: '', phone2: '', viber1: '', viber2: '', groupSize: '' }
+    ],
+    bringWithYou: '',  // общий список «что приносить с собой» — отдельный блок для родителей
     weeks: weeks,
     publishId: null,
     _draftId: null,
@@ -1119,13 +1152,20 @@ function render() {
 
 function renderLocations() {
   const wrap = document.getElementById('locations-edit');
-  wrap.innerHTML = state.locations.map((name, i) => `
+  wrap.innerHTML = state.locations.map((name, i) => {
+    const addr = (state.locationAddresses && state.locationAddresses[i]) || '';
+    const det = (state.locationDetails && state.locationDetails[i]) || {};
+    const hasContacts = !!(det.phone1 || det.phone2 || det.viber1 || det.viber2 || det.groupSize);
+    return `
     <div class="location-edit">
       <input type="text" value="${escapeHtml(name)}" data-loc-idx="${i}" onchange="renameLocation(${i}, this.value)">
-      <input type="text" class="location-address" value="${escapeHtml((state.locationAddresses && state.locationAddresses[i]) || '')}"
-        placeholder="—адрес—" onchange="setLocationAddress(${i}, this.value)">
+      <button class="location-address-btn" onclick="openLocationSettings(${i})" title="настройки локации">
+        ${addr ? escapeHtml(addr) : '<span style="opacity:0.5">+ адрес и контакты</span>'}
+        ${hasContacts ? '<span class="contact-mark">📞</span>' : ''}
+      </button>
     </div>
-  `).join('');
+  `;
+  }).join('');
   // Мобильные вкладки — те же названия, но как кнопки
   const tabsWrap = document.getElementById('mobile-loc-tabs');
   if (tabsWrap) {
@@ -1136,6 +1176,87 @@ function renderLocations() {
   }
   // Применяем класс к body (на десктопе CSS его игнорирует)
   applyMobileLocClass();
+}
+
+function openLocationSettings(idx) {
+  if (!state.locationDetails) state.locationDetails = [{},{},{}];
+  while (state.locationDetails.length < 3) state.locationDetails.push({});
+  const det = state.locationDetails[idx] || {};
+  const name = state.locations[idx] || '';
+  const addr = (state.locationAddresses && state.locationAddresses[idx]) || '';
+  openModal(`
+    <h2>Настройки локации</h2>
+    <p style="font-family:Inter,sans-serif;font-size:12px;color:rgba(42,42,40,0.6);margin-bottom:14px">${escapeHtml(name)}</p>
+
+    <label>Название</label>
+    <input type="text" id="ls-name" value="${escapeHtml(name)}" placeholder="Кластер">
+
+    <label>Адрес</label>
+    <input type="text" id="ls-addr" value="${escapeHtml(addr)}" placeholder="напр. Пожарный 19">
+
+    <label>Размер группы (детей)</label>
+    <input type="text" id="ls-group" value="${escapeHtml(det.groupSize || '')}" placeholder="напр. до 10 детей">
+
+    <label>Телефон 1</label>
+    <input type="text" id="ls-phone1" value="${escapeHtml(det.phone1 || '')}" placeholder="+375 29 ...">
+
+    <label>Телефон 2</label>
+    <input type="text" id="ls-phone2" value="${escapeHtml(det.phone2 || '')}" placeholder="+375 33 ...">
+
+    <label>Viber 1 (ссылка или номер)</label>
+    <input type="text" id="ls-viber1" value="${escapeHtml(det.viber1 || '')}" placeholder="viber://chat?number=... или просто номер">
+
+    <label>Viber 2 (ссылка или номер)</label>
+    <input type="text" id="ls-viber2" value="${escapeHtml(det.viber2 || '')}" placeholder="viber://chat?number=... или просто номер">
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">отмена</button>
+      <button class="btn btn-primary" onclick="saveLocationSettings(${idx})">сохранить</button>
+    </div>
+  `);
+}
+
+function saveLocationSettings(idx) {
+  pushUndo();
+  if (!state.locationDetails) state.locationDetails = [{},{},{}];
+  if (!state.locationAddresses) state.locationAddresses = ['','',''];
+  state.locations[idx] = document.getElementById('ls-name').value.trim() || ('Локация ' + (idx+1));
+  state.locationAddresses[idx] = document.getElementById('ls-addr').value.trim();
+  state.locationDetails[idx] = {
+    phone1: document.getElementById('ls-phone1').value.trim(),
+    phone2: document.getElementById('ls-phone2').value.trim(),
+    viber1: document.getElementById('ls-viber1').value.trim(),
+    viber2: document.getElementById('ls-viber2').value.trim(),
+    groupSize: document.getElementById('ls-group').value.trim()
+  };
+  saveLocal();
+  closeModal();
+  render();
+  toast('Настройки локации сохранены', 'success');
+}
+
+function openBringWithYouModal() {
+  const cur = state.bringWithYou || '';
+  openModal(`
+    <h2>🎒 Что приносить с собой</h2>
+    <p style="font-family:Inter,sans-serif;font-size:12px;color:rgba(42,42,40,0.6);margin-bottom:14px">
+      Общий список — будет показан в попапе программы каждого интенсива (для родителей и маркетинга). Можно перечислять через запятую или с переносами строк.
+    </p>
+    <textarea id="bw-text" placeholder="напр. Бутылка воды, перекус, сменная обувь, удобная одежда" style="min-height:120px">${escapeHtml(cur)}</textarea>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">отмена</button>
+      <button class="btn btn-primary" onclick="saveBringWithYou()">сохранить</button>
+    </div>
+  `);
+  setTimeout(() => document.getElementById('bw-text').focus(), 50);
+}
+
+function saveBringWithYou() {
+  pushUndo();
+  state.bringWithYou = document.getElementById('bw-text').value.trim();
+  saveLocal();
+  closeModal();
+  toast('Список сохранён', 'success');
 }
 
 function setLocationAddress(idx, val) {
@@ -1450,6 +1571,8 @@ function showSlotProgram(weekId, lIdx, sIdx) {
   const w = findWeek(weekId); if (!w) return;
   const slot = w.locations[lIdx].slots[sIdx];
   const locName = state.locations[lIdx];
+  const locAddr = (state.locationAddresses && state.locationAddresses[lIdx]) || '';
+  const locDet = (state.locationDetails && state.locationDetails[lIdx]) || {};
   const dateRange = w.locations[lIdx].dateRange;
   const dirClass = directionToClass(slot.direction);
   const dirLabel = slot.direction || '—';
@@ -1466,13 +1589,14 @@ function showSlotProgram(weekId, lIdx, sIdx) {
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
       ${slot.direction ? `<span class="dir-chip ${dirClass}">${escapeHtml(dirLabel)}</span>` : ''}
       <span style="font-family:Inter,sans-serif;font-size:12px;color:rgba(42,42,40,0.6)">
-        ${escapeHtml(locName)}${state.locationAddresses && state.locationAddresses[lIdx] ? ' (' + escapeHtml(state.locationAddresses[lIdx]) + ')' : ''} · ${escapeHtml(dateRange || '—')} · ${escapeHtml(slot.time || '')}
+        ${escapeHtml(locName)}${locAddr ? ' (' + escapeHtml(locAddr) + ')' : ''} · ${escapeHtml(dateRange || '—')} · ${escapeHtml(slot.time || '')}
       </span>
     </div>
 
     <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-family:Inter,sans-serif;font-size:13px;margin-bottom:14px">
       <span style="color:rgba(42,42,40,0.55)">Педагог</span>
       <span>${escapeHtml(slot.teacher || '—')}</span>
+      ${locDet.groupSize ? `<span style="color:rgba(42,42,40,0.55)">Группа</span><span>${escapeHtml(locDet.groupSize)}</span>` : ''}
       <span style="color:rgba(42,42,40,0.55)">Стоимость</span>
       <span style="font-weight:500">${escapeHtml(cost)}</span>
     </div>
@@ -1482,12 +1606,63 @@ function showSlotProgram(weekId, lIdx, sIdx) {
       <div style="font-family:Geologica,sans-serif;font-size:14px;line-height:1.55;color:var(--ink)">${descHtml}</div>
     </div>
 
+    ${renderBringWithYouBlock(state.bringWithYou)}
+    ${renderContactsBlock(locDet)}
+
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">закрыть</button>
       <button class="btn btn-ghost" onclick="aiExpandDescription('${weekId}',${lIdx},${sIdx})">✨ ${hasDesc ? 'переписать через ИИ' : 'сгенерировать'}</button>
       <button class="btn btn-primary" onclick="closeModal();openSlotMenu('${weekId}',${lIdx},${sIdx})">✏ редактировать</button>
     </div>
   `);
+}
+
+// Универсальные хелперы для блоков «что приносить» и «контакты»
+function renderBringWithYouBlock(text) {
+  if (!text || !String(text).trim()) return '';
+  const html = escapeHtml(String(text)).replace(/\n/g, '<br>');
+  return `
+    <div style="border-top:1px solid rgba(42,42,40,0.1);padding-top:12px;margin-top:12px">
+      <div style="font-family:Inter,sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:6px">🎒 С собой</div>
+      <div style="font-family:Geologica,sans-serif;font-size:13px;line-height:1.5;color:var(--ink)">${html}</div>
+    </div>
+  `;
+}
+
+// Превращает viber-номер в кликабельную ссылку
+function formatViberLink(v) {
+  if (!v) return '';
+  const trimmed = String(v).trim();
+  if (trimmed.startsWith('viber:') || trimmed.startsWith('http')) return trimmed;
+  // Если это просто номер — собираем viber://
+  const digits = trimmed.replace(/[^\d+]/g, '');
+  return 'viber://chat?number=' + encodeURIComponent(digits);
+}
+
+function renderContactsBlock(locDet) {
+  if (!locDet) return '';
+  const phones = [locDet.phone1, locDet.phone2].filter(Boolean);
+  const vibers = [locDet.viber1, locDet.viber2].filter(Boolean);
+  if (!phones.length && !vibers.length) return '';
+  let rows = '';
+  phones.forEach(p => {
+    rows += `<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+      <span style="color:rgba(42,42,40,0.55);font-size:11px;width:60px">телефон</span>
+      <a href="tel:${escapeHtml(p.replace(/[^\d+]/g, ''))}" style="color:var(--ink);text-decoration:none;font-weight:500">${escapeHtml(p)}</a>
+    </div>`;
+  });
+  vibers.forEach(v => {
+    rows += `<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+      <span style="color:rgba(42,42,40,0.55);font-size:11px;width:60px">viber</span>
+      <a href="${escapeHtml(formatViberLink(v))}" style="color:var(--ink);text-decoration:none;font-weight:500">${escapeHtml(v)}</a>
+    </div>`;
+  });
+  return `
+    <div style="border-top:1px solid rgba(42,42,40,0.1);padding-top:12px;margin-top:12px">
+      <div style="font-family:Inter,sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:6px">📞 Записаться</div>
+      <div style="font-family:Inter,sans-serif;font-size:13px">${rows}</div>
+    </div>
+  `;
 }
 
 // Считает количество дней по строке диапазона: "1 - 5 июня" → "5 дней", "29 - 3 июля" → "5 дней"
@@ -2913,6 +3088,11 @@ async function init() {
     }
     if (!state.locationAddresses) state.locationAddresses = ['', '', ''];
     while (state.locationAddresses.length < 3) state.locationAddresses.push('');
+    if (!state.locationDetails) state.locationDetails = [];
+    while (state.locationDetails.length < 3) {
+      state.locationDetails.push({ phone1: '', phone2: '', viber1: '', viber2: '', groupSize: '' });
+    }
+    if (state.bringWithYou === undefined) state.bringWithYou = '';
     state.weeks.forEach(w => {
       if (!w.id) w.id = 'w_' + Math.random().toString(36).slice(2, 9);
       if (!w.locations) w.locations = [makeLocationData(), makeLocationData(), makeLocationData()];
