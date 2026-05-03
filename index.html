@@ -3532,13 +3532,6 @@ function proceedCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
     ).join('');
   };
 
-  // Опции для педагога с пометкой «занят» по конфликтам
-  const teacherOpts = '<option value="">— выберите —</option>' + (ref.teachers || []).map(it => {
-    const conflict = teacherConflicts[String(it.id)];
-    const label = it.name + (conflict ? '  ⚠ занят: ' + conflict : '');
-    return `<option value="${escapeHtml(String(it.id))}" ${String(it.id)===String(teacherGuess)?'selected':''}>${escapeHtml(label)}</option>`;
-  }).join('');
-
   // Угадываем педагога по имени из слота
   const teacherGuess = slot.alfaTeacherId || guessTeacherId(slot.teacher, ref.teachers || []);
   // Предмет: сначала из слота (через библиотеку), потом из дефолтов проекта,
@@ -3563,6 +3556,13 @@ function proceedCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
   // Список педагогов с пометкой «занят» если они стоят в другом слоте на пересекающиеся даты+время
   const teacherConflicts = findTeacherConflicts(weekId, lIdx, sIdx, ref.teachers || []);
   window._crmTeacherConflicts = teacherConflicts;
+
+  // Опции для педагога с пометкой «занят» по конфликтам
+  const teacherOpts = '<option value="">— выберите —</option>' + (ref.teachers || []).map(it => {
+    const conflict = teacherConflicts[String(it.id)];
+    const label = it.name + (conflict ? '  ⚠ занят: ' + conflict : '');
+    return `<option value="${escapeHtml(String(it.id))}" ${String(it.id)===String(teacherGuess)?'selected':''}>${escapeHtml(label)}</option>`;
+  }).join('');
 
   // Если филиал пустой — предупреждаем и не открываем форму
   if (!ref.teachers || !ref.teachers.length) {
