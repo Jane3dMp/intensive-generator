@@ -195,10 +195,14 @@
 
   .slot-line {
     display: grid;
-    grid-template-columns: 84px 1fr 90px 50px auto;
-    gap: 8px;
+    grid-template-columns: 84px 1fr 50px auto;
+    grid-template-areas:
+      "time theme cost btn"
+      "time teacher cost btn";
+    column-gap: 8px;
+    row-gap: 1px;
     align-items: center;
-    padding: 5px 8px;
+    padding: 6px 8px;
     border-radius: 3px;
     background: var(--dir-default-bg);
     border: 1px solid var(--dir-default-border);
@@ -212,24 +216,35 @@
   .slot-line.dir-mixed   { background: var(--dir-mixed-bg);    border-color: var(--dir-mixed-border); }
   .slot-line.empty { display: none; }
   .slot-line .time {
+    grid-area: time;
+    align-self: center;
     font-weight: 500;
     font-size: 11px;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
   }
-  .slot-line .theme-wrap {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    min-width: 0;
-  }
   .slot-line .theme {
+    grid-area: theme;
     font-weight: 500;
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.25;
+    /* Перенос по словам если очень длинная */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  .slot-line .teacher {
+    grid-area: teacher;
+    font-size: 10px;
+    color: rgba(42,42,40,0.7);
+    font-style: italic;
+    line-height: 1.2;
+  }
+  .slot-line .cost-badge {
+    grid-area: cost;
+    align-self: center;
+  }
+  .slot-line .program-btn {
+    grid-area: btn;
+    align-self: center;
   }
 
   /* Бейдж «программа →» — контрастная кликабельная кнопка */
@@ -408,16 +423,21 @@
     .mobile-loc-tabs { display: flex; }
     .slot-line {
       grid-template-columns: 72px 1fr 40px;
-      grid-template-areas: "time theme cost" "time teacher cost" "btn btn btn";
-      font-size: 11px;
-      gap: 2px 8px;
+      grid-template-areas:
+        "time theme cost"
+        "time teacher cost"
+        "btn btn btn";
+      column-gap: 8px;
+      row-gap: 2px;
       padding: 6px 8px;
+      font-size: 11px;
     }
-    .slot-line .time { grid-area: time; align-self: center; }
-    .slot-line .theme { grid-area: theme; white-space: normal; overflow: visible; text-overflow: clip; }
-    .slot-line .teacher { grid-area: teacher; font-size: 10px; opacity: 0.75; font-style: italic; }
-    .slot-line .cost-badge { grid-area: cost; align-self: center; }
-    .slot-line .program-btn { grid-area: btn; justify-self: stretch; text-align: center; padding: 7px; margin-top: 4px; }
+    .slot-line .program-btn {
+      justify-self: stretch;
+      text-align: center;
+      padding: 7px;
+      margin-top: 4px;
+    }
 
     body.mobile-loc-0 .location-cell[data-loc-idx="1"],
     body.mobile-loc-0 .location-cell[data-loc-idx="2"] { display: none; }

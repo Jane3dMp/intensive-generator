@@ -410,6 +410,20 @@
     cursor: text;
     transition: background 0.2s, border-color 0.2s;
   }
+  /* Заполненные слоты — раскладка с педагогом под темой (2 строки) */
+  .slot.filled {
+    grid-template-columns: 84px 1fr 50px 30px;
+    grid-template-areas:
+      "time theme cost actions"
+      "time teacher cost actions";
+    column-gap: 6px;
+    row-gap: 0;
+  }
+  .slot.filled .time { grid-area: time; align-self: center; }
+  .slot.filled .theme-wrap { grid-area: theme; align-self: center; }
+  .slot.filled .teacher { grid-area: teacher; font-size: 10px; font-style: italic; opacity: 0.75; padding: 0; }
+  .slot.filled .cost-badge { grid-area: cost; align-self: center; }
+  .slot.filled .slot-actions { grid-area: actions; }
   /* Слоты по направлениям */
   .slot.dir-it      { background: var(--dir-it-bg);       border-color: var(--dir-it-border); }
   .slot.dir-soft    { background: var(--dir-soft-bg);     border-color: var(--dir-soft-border); }
@@ -1217,7 +1231,7 @@ function renderLocationCell(week, wIdx, loc, lIdx) {
 function renderSlot(weekId, wIdx, lIdx, slot, sIdx) {
   const isEmpty = !(slot.theme || slot.teacher);
   const dirClass = directionToClass(slot.direction);
-  const cls = isEmpty ? 'slot empty' : ('slot ' + dirClass).trim();
+  const cls = isEmpty ? 'slot empty' : ('slot filled ' + dirClass).trim();
   if (isEmpty) {
     // Пустой слот — клик по нему открывает меню «откуда взять тему»
     return `
