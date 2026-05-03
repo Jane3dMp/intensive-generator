@@ -3675,10 +3675,10 @@ function buildCrmLeadFormUrl(groupId) {
   return 'https://' + ALFA_DOMAIN + '/common/' + ALFA_BRANCH_ID + '/lead/create?gid=' + groupId;
 }
 
-// Ссылка на редактирование группы в Альфе (для проставления галочки публичной записи)
+// Ссылка на страницу группы в Альфе (для проставления галочки публичной записи)
 function buildCrmGroupEditUrl(groupId) {
   if (!groupId) return '';
-  return 'https://' + ALFA_DOMAIN + '/2/group/update?id=' + groupId;
+  return 'https://' + ALFA_DOMAIN + '/company/' + ALFA_BRANCH_ID + '/group/view?id=' + groupId;
 }
 
 // Модалка после успешного создания: автоматически открывает страницу группы в Альфе
