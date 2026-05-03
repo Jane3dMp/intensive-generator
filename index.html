@@ -480,19 +480,26 @@
   .slot-actions {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
   }
   .slot-action {
     background: transparent;
     border: none;
     cursor: pointer;
-    font-size: 12px;
-    padding: 2px;
+    font-size: 11px;
+    padding: 1px;
     line-height: 1;
     border-radius: 2px;
     color: rgba(21,22,23,0.5);
   }
+  .slot-action.slot-arrow {
+    font-size: 8px;
+    padding: 0 1px;
+    height: 10px;
+    opacity: 0.4;
+  }
   .slot-action:hover { background: rgba(0,0,0,0.07); color: var(--ink); }
+  .slot-action.slot-arrow:hover { opacity: 1; }
   .slot.empty .slot-actions { visibility: hidden; }
   .slot.empty:hover .slot-actions { visibility: visible; }
 
@@ -1196,7 +1203,12 @@ function renderLocationCell(week, wIdx, loc, lIdx) {
   });
 
   // Кнопка добавить слот
+  html += `<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">`;
   html += `<button class="add-slot-btn" onclick="addSlot('${week.id}', ${lIdx})">＋ слот</button>`;
+  if (loc.manualOrder && loc.slots.length > 1) {
+    html += `<button class="add-slot-btn" onclick="resortSlotsByTime('${week.id}', ${lIdx})" title="отсортировать слоты по времени">🔃 по времени</button>`;
+  }
+  html += `</div>`;
 
   html += `</div>`;
   return html;
@@ -1242,6 +1254,8 @@ function renderSlot(weekId, wIdx, lIdx, slot, sIdx) {
         onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
         >${escapeHtml(formatCost(slot.cost))}</span>
       <div class="slot-actions">
+        <button class="slot-action slot-arrow" onclick="moveSlot('${weekId}',${lIdx},${sIdx},-1)" title="выше">▲</button>
+        <button class="slot-action slot-arrow" onclick="moveSlot('${weekId}',${lIdx},${sIdx},1)" title="ниже">▼</button>
         <button class="slot-action" onclick="openSlotMenu('${weekId}',${lIdx},${sIdx})" title="меню">⋯</button>
         <button class="slot-action" onclick="removeSlot('${weekId}',${lIdx},${sIdx})" title="удалить">✕</button>
       </div>
@@ -1291,6 +1305,22 @@ function setEditor(v) {
 
 function findWeek(id) { return state.weeks.find(w => w.id === id); }
 
+// Парсим время начала из строки времени слота: "14:00-16:00" → 14*60 = 840 минут от начала суток
+function parseSlotStartMinutes(timeStr) {
+  if (!timeStr) return 9999;
+  const m = String(timeStr).match(/(\d{1,2})(?::(\d{2}))?/);
+  if (!m) return 9999;
+  const h = parseInt(m[1]) || 0;
+  const min = parseInt(m[2]) || 0;
+  return h * 60 + min;
+}
+
+// Сортировка слотов в ячейке по времени начала (если не закреплён ручной порядок)
+function autoSortSlots(loc) {
+  if (!loc || !loc.slots || loc.manualOrder) return;
+  loc.slots.sort((a, b) => parseSlotStartMinutes(a.time) - parseSlotStartMinutes(b.time));
+}
+
 function setWeekMarker(weekId, val) {
   pushUndo();
   const w = findWeek(weekId); if (!w) return;
@@ -1313,6 +1343,13 @@ function setSlotField(weekId, lIdx, sIdx, field, val) {
   if (!slot) return;
   slot[field] = val;
   saveLocal();
+  // Если изменилось время — пересортировать ячейку и полный re-render
+  if (field === 'time') {
+    autoSortSlots(w.locations[lIdx]);
+    saveLocal();
+    render();
+    return;
+  }
   // Лёгкий ре-рендер только этой ячейки чтобы обновить класс empty/нормальный
   const cell = document.querySelector(`[data-slot="${weekId}-${lIdx}-${sIdx}"]`);
   if (cell) {
@@ -1421,8 +1458,41 @@ function addSlot(weekId, lIdx) {
   else if (!existingTimes.includes('10:30-13')) newTime = '10:30-13';
   else newTime = '';
   w.locations[lIdx].slots.push(makeSlot({ time: newTime }));
+  autoSortSlots(w.locations[lIdx]);
   saveLocal();
   render();
+}
+
+// Перемещение слота вверх/вниз вручную. После этого ячейка переходит в режим
+// ручного порядка (manualOrder=true) — автосортировка отключается до сброса.
+function moveSlot(weekId, lIdx, sIdx, direction) {
+  const w = findWeek(weekId); if (!w) return;
+  const loc = w.locations[lIdx];
+  if (!loc || !loc.slots) return;
+  const newIdx = sIdx + direction;
+  if (newIdx < 0 || newIdx >= loc.slots.length) return;
+  pushUndo();
+  // Меняем местами
+  const tmp = loc.slots[sIdx];
+  loc.slots[sIdx] = loc.slots[newIdx];
+  loc.slots[newIdx] = tmp;
+  // Закрепляем ручной порядок
+  loc.manualOrder = true;
+  saveLocal();
+  render();
+}
+
+// Сбросить ручной порядок и пересортировать по времени
+function resortSlotsByTime(weekId, lIdx) {
+  const w = findWeek(weekId); if (!w) return;
+  const loc = w.locations[lIdx];
+  if (!loc) return;
+  pushUndo();
+  loc.manualOrder = false;
+  autoSortSlots(loc);
+  saveLocal();
+  render();
+  toast('Слоты отсортированы по времени', 'success');
 }
 
 function removeSlot(weekId, lIdx, sIdx) {
@@ -1634,6 +1704,7 @@ function saveSlotMenu(weekId, lIdx, sIdx) {
   slot.direction = document.getElementById('sm-direction').value.trim();
   slot.cost = document.getElementById('sm-cost').value.trim();
   slot.description = document.getElementById('sm-desc').value.trim();
+  autoSortSlots(w.locations[lIdx]);
   saveLocal();
   closeModal();
   render();
@@ -2698,6 +2769,7 @@ async function init() {
       while (w.locations.length < 3) w.locations.push(makeLocationData());
       w.locations.forEach(loc => {
         if (!loc.slots) loc.slots = [];
+        autoSortSlots(loc);
       });
     });
   } else {

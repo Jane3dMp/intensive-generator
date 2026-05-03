@@ -474,7 +474,28 @@ async function loadPublication(id) {
   const r = await fetch(LIBRARY_URL + '?action=getPublished&project=' + PROJECT_TYPE + '&id=' + encodeURIComponent(id) + '&_t=' + Date.now());
   const data = await r.json();
   if (!data.ok || !data.version) throw new Error(data.error || 'Публикация не найдена');
-  return JSON.parse(data.version.stateJson);
+  const obj = JSON.parse(data.version.stateJson);
+  // Сортируем слоты по времени, если ячейка не закреплена в ручном порядке
+  if (obj && obj.weeks) {
+    obj.weeks.forEach(w => {
+      if (!w.locations) return;
+      w.locations.forEach(loc => {
+        if (loc && loc.slots && !loc.manualOrder) {
+          loc.slots.sort((a, b) => parseSlotStartMinutes(a.time) - parseSlotStartMinutes(b.time));
+        }
+      });
+    });
+  }
+  return obj;
+}
+
+function parseSlotStartMinutes(timeStr) {
+  if (!timeStr) return 9999;
+  const m = String(timeStr).match(/(\d{1,2})(?::(\d{2}))?/);
+  if (!m) return 9999;
+  const h = parseInt(m[1]) || 0;
+  const min = parseInt(m[2]) || 0;
+  return h * 60 + min;
 }
 
 function directionToClass(dir) {
