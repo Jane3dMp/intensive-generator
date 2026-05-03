@@ -1719,8 +1719,8 @@ function showSlotProgram(weekId, lIdx, sIdx) {
     ${renderBringWithYouBlock(state.bringWithYou)}
     ${renderContactsBlock(locDet)}
 
-    ${slot.crmFormUrl ? `
-      <a href="${escapeHtml(slot.crmFormUrl)}" target="_blank"
+    ${(slot.crmFormUrl || slot.crmGroupId) ? `
+      <a href="${escapeHtml(slot.crmFormUrl || buildCrmLeadFormUrl(slot.crmGroupId))}" target="_blank"
          style="display:block;margin-top:14px;padding:12px;background:var(--ink);color:var(--paper);text-align:center;border-radius:6px;text-decoration:none;font-family:Inter,sans-serif;font-size:14px;font-weight:500">
         ✏ форма записи (как у родителей)
       </a>

@@ -777,8 +777,8 @@ function showSlotDetails(wIdx, lIdx, sIdx) {
     ${renderBringWithYouBlock(state.bringWithYou)}
     ${renderContactsBlock(locDet)}
 
-    ${s.crmFormUrl ? `
-      <a href="${escapeHtml(s.crmFormUrl)}" target="_blank" class="register-btn">
+    ${(s.crmFormUrl || s.crmGroupId) ? `
+      <a href="${escapeHtml(s.crmFormUrl || ('https://proznanie4eee.s20.online/common/5/lead/create?gid=' + s.crmGroupId))}" target="_blank" class="register-btn">
         ✏ записаться на интенсив
       </a>
     ` : ''}
