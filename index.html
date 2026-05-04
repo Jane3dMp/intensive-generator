@@ -1371,11 +1371,42 @@ async function openCrmDefaultsModal() {
       <select id="crmd-level">${opts(ref.levels, def.levelId)}</select>
     ` : '<input type="hidden" id="crmd-level" value="">'}
 
+    <div style="margin-top:18px;padding:12px;background:#FFF4F0;border-left:3px solid #D9583A;border-radius:4px">
+      <div style="font-family:Inter,sans-serif;font-size:11px;font-weight:600;color:#9a3a1a;margin-bottom:6px">⚠ Отвязка от Альфы</div>
+      <div style="font-family:Inter,sans-serif;font-size:12px;line-height:1.45;color:rgba(42,42,40,0.75);margin-bottom:8px">
+        Если ты вручную удалила группы в Альфе — отвяжи все слоты, чтобы значки ✓ CRM пропали. Это не трогает Альфу, только локально стирает связи.
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="unlinkAllFromCrm()" style="border-color:#D9583A;color:#9a3a1a">отвязать ВСЕ слоты от Альфы</button>
+    </div>
+
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">отмена</button>
       <button class="btn btn-primary" onclick="saveCrmDefaults()">сохранить</button>
     </div>
   `);
+}
+
+function unlinkAllFromCrm() {
+  // Считаем сколько слотов привязано
+  let count = 0;
+  state.weeks.forEach(w => w.locations.forEach(loc => loc.slots.forEach(s => {
+    if (s.crmGroupId) count++;
+  })));
+  if (count === 0) {
+    toast('Нет ни одного слота с привязкой к Альфе', 'success');
+    return;
+  }
+  if (!confirm(`Отвязать ${count} слот(ов) от Альфа CRM?\n\nЭто только локально снимет связи (значки ✓ CRM исчезнут). В самой Альфе ничего не трогаю.`)) return;
+  pushUndo();
+  state.weeks.forEach(w => w.locations.forEach(loc => loc.slots.forEach(s => {
+    delete s.crmGroupId;
+    delete s.crmFormUrl;
+    delete s.crmSyncedAt;
+  })));
+  saveLocal();
+  closeModal();
+  render();
+  toast(`✓ Отвязано ${count} слот(ов)`, 'success');
 }
 
 function saveCrmDefaults() {
@@ -1536,13 +1567,20 @@ function renderSlot(weekId, wIdx, lIdx, slot, sIdx) {
         <button class="info-btn ${hasDesc ? 'has-desc' : ''}"
           onclick="showSlotProgram('${weekId}',${lIdx},${sIdx})"
           title="${hasDesc ? 'программа интенсива' : 'добавить описание'}">ⓘ</button>
-        ${slot.crmGroupId ? `
-          <a class="crm-badge" href="${escapeHtml(slot.crmFormUrl || buildCrmLeadFormUrl(slot.crmGroupId))}"
+        ${slot.crmGroupId ? (() => {
+          const st = window._crmStatus && window._crmStatus[slot.crmGroupId];
+          if (st && (!st.exists || st.removed)) {
+            const msg = !st.exists
+              ? `Группа #${slot.crmGroupId} не найдена в Альфе. Возможно она удалена. Открой слот → «отвязать» или «обновить в Альфе»`
+              : `Группа #${slot.crmGroupId} архивирована в Альфе. Открой слот → «отвязать» или создай заново`;
+            return `<span class="crm-badge" style="background:#FFE0E0;color:#9a3a1a;border-color:#D9583A" title="${escapeHtml(msg)}">⚠ CRM</span>`;
+          }
+          return `<a class="crm-badge" href="${escapeHtml(slot.crmFormUrl || buildCrmLeadFormUrl(slot.crmGroupId))}"
              target="_blank" onclick="event.stopPropagation()"
              title="Опубликовано в Альфа CRM (id ${slot.crmGroupId}). Клик — открыть форму записи">
             ✓ CRM
-          </a>
-        ` : ''}
+          </a>`;
+        })() : ''}
       </span>
       <input class="teacher" value="${escapeHtml(slot.teacher)}" placeholder="педагог"
         onchange="setSlotField('${weekId}',${lIdx},${sIdx},'teacher',this.value)" style="grid-column:auto">
@@ -2222,7 +2260,17 @@ function openSlotMenu(weekId, lIdx, sIdx) {
       <button class="btn btn-ghost btn-sm" onclick="aiSuggestForSlot('${weekId}',${lIdx},${sIdx})">💡 ИИ: подобрать тему</button>
       <button class="btn btn-ghost btn-sm" onclick="openLibForSlot('${weekId}',${lIdx},${sIdx})">📚 из библиотеки</button>
       <button class="btn btn-ghost btn-sm" onclick="saveSlotToLibrary('${weekId}',${lIdx},${sIdx})">💾 в библиотеку</button>
-      <button class="btn btn-ghost btn-sm" onclick="openCrmDispatchForm('${weekId}',${lIdx},${sIdx})">📤 в Альфа CRM ${slot.crmGroupId ? '✓' : ''}</button>
+    </div>
+
+    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;padding:8px;background:rgba(195,179,153,0.12);border-radius:6px">
+      <span style="font-family:Inter,sans-serif;font-size:11px;color:rgba(42,42,40,0.6);align-self:center;margin-right:4px">Альфа CRM:</span>
+      ${slot.crmGroupId ? `
+        <button class="btn btn-ghost btn-sm" onclick="openCrmDispatchForm('${weekId}',${lIdx},${sIdx})" title="редактировать и переотправить">📝 обновить ✓</button>
+        <button class="btn btn-ghost btn-sm" onclick="archiveSlotInCrm('${weekId}',${lIdx},${sIdx})" title="архивировать группу в Альфе">🗄 архивировать</button>
+        <button class="btn btn-ghost btn-sm" onclick="unlinkSlotFromCrm('${weekId}',${lIdx},${sIdx})" title="убрать связь только локально, в Альфе ничего не трогать">🔗 отвязать</button>
+      ` : `
+        <button class="btn btn-ghost btn-sm" onclick="openCrmDispatchForm('${weekId}',${lIdx},${sIdx})">📤 отправить в Альфу</button>
+      `}
     </div>
 
     <div class="modal-actions">
@@ -3489,9 +3537,58 @@ async function init() {
   // Грузим библиотеку (не блокируем UI)
   loadLibrary();
 
+  // Сверка с Альфой — асинхронно, не блокируем UI
+  setTimeout(() => checkCrmGroupsStatus(), 2000);
+
   // Heartbeat при наличии publishId
   if (state.publishId) {
     startHeartbeat();
+  }
+}
+
+// Сверяет все слоты с crmGroupId с реальным состоянием в Альфе.
+// Помечает «осиротевшие» слоты (группа удалена) или с конфликтами дат.
+async function checkCrmGroupsStatus() {
+  const ids = [];
+  state.weeks.forEach(w => w.locations.forEach(loc => loc.slots.forEach(s => {
+    if (s.crmGroupId) ids.push(s.crmGroupId);
+  })));
+  if (!ids.length) return;
+
+  try {
+    const r = await fetch(LIBRARY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'crmCheckGroups',
+        project: 'intensive',
+        branchId: 5,
+        groupIds: ids
+      })
+    });
+    const data = await r.json();
+    if (!data.ok || !data.results) return;
+
+    // Сохраним статус каждой группы в _crmStatus глобально, рендер прочитает
+    window._crmStatus = data.results;
+    let orphans = 0, removed = 0;
+    state.weeks.forEach(w => w.locations.forEach(loc => loc.slots.forEach(s => {
+      if (!s.crmGroupId) return;
+      const st = data.results[s.crmGroupId];
+      if (!st) return;
+      if (!st.exists) orphans++;
+      else if (st.removed) removed++;
+    })));
+
+    if (orphans > 0 || removed > 0) {
+      const msg = [];
+      if (orphans) msg.push(`${orphans} групп(ы) не найдены в Альфе`);
+      if (removed) msg.push(`${removed} группа(ы) удалена/архивирована`);
+      toast('⚠ Альфа: ' + msg.join(', ') + '. Открой слот чтобы исправить.', 'error');
+      render();  // перерисуем чтобы показать ⚠ значки
+    }
+  } catch(e) {
+    console.warn('checkCrmGroupsStatus failed:', e);
   }
 }
 
@@ -3541,6 +3638,59 @@ async function loadCrmReference(force) {
 }
 
 // Главная точка входа: открыть форму отправки слота в Альфу
+// Архивирует группу в Альфе (помечает removed=1) и снимает локальную связь.
+async function archiveSlotInCrm(weekId, lIdx, sIdx) {
+  const w = findWeek(weekId); if (!w) return;
+  const slot = w.locations[lIdx].slots[sIdx];
+  if (!slot || !slot.crmGroupId) {
+    toast('Слот не привязан к Альфе', 'error');
+    return;
+  }
+  if (!confirm('Архивировать группу в Альфе и снять связь?\n\nГруппа в Альфе пометится как удалённая (removed=1) — её не будет в списках, но история останется. Записанные родители останутся в системе.')) return;
+
+  toast('Архивирую…', 'info');
+  try {
+    const r = await fetch(LIBRARY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'crmArchiveGroup',
+        project: 'intensive',
+        branchId: 5,
+        groupId: slot.crmGroupId
+      })
+    });
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'ошибка архивации');
+    pushUndo();
+    delete slot.crmGroupId;
+    delete slot.crmFormUrl;
+    delete slot.crmSyncedAt;
+    saveLocal();
+    closeModal();
+    render();
+    toast('✓ Группа архивирована в Альфе', 'success');
+  } catch(e) {
+    toast('Ошибка: ' + e.message, 'error');
+  }
+}
+
+// Отвязка БЕЗ запроса в Альфу — только локально.
+function unlinkSlotFromCrm(weekId, lIdx, sIdx) {
+  const w = findWeek(weekId); if (!w) return;
+  const slot = w.locations[lIdx].slots[sIdx];
+  if (!slot || !slot.crmGroupId) return;
+  if (!confirm(`Отвязать слот от группы #${slot.crmGroupId} в Альфе?\n\nЛокально стираю crmGroupId и crmFormUrl. В самой Альфе ничего не трогаю — группа там останется как есть.`)) return;
+  pushUndo();
+  delete slot.crmGroupId;
+  delete slot.crmFormUrl;
+  delete slot.crmSyncedAt;
+  saveLocal();
+  closeModal();
+  render();
+  toast('✓ Связь снята локально', 'success');
+}
+
 async function openCrmDispatchForm(weekId, lIdx, sIdx) {
   const w = findWeek(weekId); if (!w) return;
   const slot = w.locations[lIdx].slots[sIdx];
@@ -3992,10 +4142,19 @@ async function submitCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
   openModal(`<h2><span class="loader"></span> Отправляю в Альфа CRM…</h2><p>Создаём группу и ${lessons.length} ${pluralizeDays(lessons.length).replace('день','урок').replace('дня','урока').replace('дней','уроков')}…</p>`);
 
   try {
+    const isUpdate = mode === 'update' && existingGroupId;
     const r = await fetch(LIBRARY_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
+      body: JSON.stringify(isUpdate ? {
+        action: 'crmUpdateSlot',
+        project: 'intensive',
+        branchId: ALFA_BRANCH_ID,
+        groupId: existingGroupId,
+        group: groupPayload,
+        lessons: lessons,
+        deleteOldLessons: true   // удалим старые уроки группы и создадим новые из нашего расписания
+      } : {
         action: 'crmDispatchSlot',
         branchId: ALFA_BRANCH_ID,
         mode: mode,
@@ -4005,6 +4164,25 @@ async function submitCrmForm(weekId, lIdx, sIdx, mode, existingGroupId) {
       })
     });
     const data = await r.json();
+
+    if (isUpdate) {
+      // crmUpdateSlot возвращает другой формат
+      if (data.ok || (data.groupId && data.lessonsCreated === lessons.length)) {
+        pushUndo();
+        slot.crmGroupId = existingGroupId;
+        slot.crmFormUrl = buildCrmLeadFormUrl(existingGroupId);
+        slot.crmSyncedAt = new Date().toISOString();
+        saveLocal();
+        render();
+        closeModal();
+        toast(`✓ Обновлено в Альфе: ${data.lessonsCreated || 0} уроков создано, ${data.lessonsDeleted || 0} удалено`, 'success');
+      } else {
+        closeModal();
+        const errMsg = data.error || (data.errors && data.errors.length ? JSON.stringify(data.errors[0]) : 'неизвестная ошибка');
+        toast('Ошибка обновления: ' + errMsg, 'error');
+      }
+      return;
+    }
 
     if (data.ok || (data.groupId && data.lessonsCreated === data.totalLessons)) {
       pushUndo();
