@@ -397,6 +397,10 @@
     vertical-align: middle;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
 
   /* Мобильные вкладки локаций */
   .mobile-loc-tabs {
@@ -578,9 +582,26 @@ function calcDaysLabel(dateRange) {
 }
 
 function pluralizeDays(n) {
-  if (n % 10 === 1 && n % 100 !== 11) return 'день';
-  if ([2,3,4].includes(n % 10) && ![12,13,14].includes(n % 100)) return 'дня';
+  const a = Math.abs(n) % 100;
+  const b = a % 10;
+  if (a > 10 && a < 20) return 'дней';
+  if (b > 1 && b < 5) return 'дня';
+  if (b === 1) return 'день';
   return 'дней';
+}
+
+// Универсальный плюрализатор: pluralize(3, 'заявка', 'заявки', 'заявок') → 'заявки'
+function pluralize(n, one, few, many) {
+  const a = Math.abs(n) % 100;
+  const b = a % 10;
+  if (a > 10 && a < 20) return many;
+  if (b > 1 && b < 5) return few;
+  if (b === 1) return one;
+  return many;
+}
+
+function _pluralizeDaysOld_unused() {
+  return '';
 }
 
 // На странице продвижения показываем утверждённые + резерв (резерв затемнённый).
@@ -590,6 +611,37 @@ function slotIsVisible(s) {
   if (!s.theme && !s.teacher) return false;
   const status = s.status || 'approved';
   return status === 'approved' || status === 'reserve';
+}
+
+// Загружаем занятость групп из Альфы (через наш Apps Script)
+// Сохраняем в window._crmOccupancy: { groupId: { limit, leads, clients, occupied, free } }
+async function loadCrmOccupancy() {
+  // Собираем все crmGroupId из state
+  const groupIds = [];
+  (state.weeks || []).forEach(w => (w.locations || []).forEach(loc => (loc.slots || []).forEach(s => {
+    if (s.crmGroupId) groupIds.push(s.crmGroupId);
+  })));
+  if (!groupIds.length) return;
+
+  // Уберём дубликаты
+  const uniqueIds = [...new Set(groupIds)];
+
+  try {
+    // GET-запрос (не CORS preflight)
+    const url = LIBRARY_URL + '?action=crmOccupancy&project=intensive&branchId=5&groupIds=' + uniqueIds.join(',');
+    const r = await fetch(url);
+    const data = await r.json();
+    if (data.ok && data.results) {
+      window._crmOccupancy = data.results;
+      // Если открыт какой-то попап с данными — обновим его
+      if (window._currentSlotPopup) {
+        const p = window._currentSlotPopup;
+        showSlotDetails(p.wIdx, p.lIdx, p.sIdx);
+      }
+    }
+  } catch(e) {
+    console.warn('occupancy load failed:', e);
+  }
 }
 
 async function init() {
@@ -612,6 +664,8 @@ async function init() {
   try {
     state = await loadPublication(id);
     render();
+    // Подгружаем занятость групп из Альфы (фоном — не блокирует UI)
+    loadCrmOccupancy();
   } catch(e) {
     document.getElementById('content').innerHTML = `
       <div class="loading">
@@ -748,6 +802,9 @@ function renderViewCell(week, wIdx, loc, lIdx) {
 }
 
 function showSlotDetails(wIdx, lIdx, sIdx) {
+  // Запоминаем текущий открытый попап — чтобы перерисовать когда подтянется occupancy
+  window._currentSlotPopup = { wIdx, lIdx, sIdx };
+
   const w = state.weeks[wIdx]; if (!w) return;
   const loc = w.locations[lIdx]; if (!loc) return;
   const s = loc.slots[sIdx]; if (!s) return;
@@ -764,6 +821,37 @@ function showSlotDetails(wIdx, lIdx, sIdx) {
   const marketingHtml = (s.marketingComment && s.marketingComment.trim())
     ? escapeHtml(s.marketingComment).replace(/\n/g, '<br>')
     : '';
+
+  // Занятость группы — если уже подгружено
+  let occupancyHtml = '';
+  if (s.crmGroupId && window._crmOccupancy && window._crmOccupancy[s.crmGroupId]) {
+    const occ = window._crmOccupancy[s.crmGroupId];
+    if (occ.limit !== null) {
+      const free = occ.free !== null ? occ.free : '?';
+      const isFew = occ.free !== null && occ.free <= 2 && occ.free > 0;
+      const isFull = occ.free === 0;
+      const color = isFull ? '#9a3a1a' : (isFew ? '#9a7a1a' : '#3a6b3a');
+      const bg = isFull ? '#FFE8E0' : (isFew ? '#FFF8E1' : '#E8F5E0');
+      occupancyHtml = `
+        <div style="margin-top:14px;padding:10px 12px;background:${bg};border-left:3px solid ${color};border-radius:4px">
+          <div style="font-family:Inter,sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:${color};margin-bottom:4px">📊 свободно мест</div>
+          <div style="font-family:Inter,sans-serif;font-size:14px;color:var(--ink)">
+            <strong style="font-size:18px">${free}</strong>
+            <span style="color:rgba(42,42,40,0.55)">из ${occ.limit} мест</span>
+          </div>
+          <div style="font-family:Inter,sans-serif;font-size:11px;color:rgba(42,42,40,0.55);margin-top:4px">
+            ${occ.leads} ${pluralize(occ.leads, 'заявка', 'заявки', 'заявок')} · ${occ.clients} ${pluralize(occ.clients, 'подтверждена', 'подтверждено', 'подтверждено')}
+          </div>
+        </div>`;
+    }
+  } else if (s.crmGroupId) {
+    // Ещё грузится — покажем плейсхолдер
+    occupancyHtml = `
+      <div style="margin-top:14px;padding:10px 12px;background:rgba(195,179,153,0.12);border-radius:4px;font-family:Inter,sans-serif;font-size:12px;color:rgba(42,42,40,0.5)">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:rgba(42,42,40,0.3);animation:pulse 1.4s ease-in-out infinite;margin-right:6px"></span>
+        загружаем занятость из Альфы…
+      </div>`;
+  }
 
   document.getElementById('modal-content').innerHTML = `
     <h2 style="margin-bottom:4px">${escapeHtml(s.theme || '—')}</h2>
@@ -784,7 +872,9 @@ function showSlotDetails(wIdx, lIdx, sIdx) {
       <span style="font-weight:500">${escapeHtml(cost)}</span>
     </div>
 
-    <div style="border-top:1px solid rgba(42,42,40,0.1);padding-top:12px">
+    ${occupancyHtml}
+
+    <div style="border-top:1px solid rgba(42,42,40,0.1);padding-top:12px${occupancyHtml ? ';margin-top:14px' : ''}">
       <div style="font-family:Inter,sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:8px">Полная программа интенсива</div>
       <div style="font-family:Geologica,sans-serif;font-size:14px;line-height:1.55;color:var(--ink)">${descHtml}</div>
     </div>
