@@ -4006,13 +4006,13 @@ function showCrmPostCreateModal(groupId, lessonsCreated, totalLessons, theme) {
 // Дефолтный note для CRM группы — обрезает описание до 255 симв.
 // Включает стоимость и ключевую часть описания.
 function buildDefaultCrmNote(slot) {
-  const cost = slot.cost ? (slot.cost + 'р/занятие') : '';
-  let note = slot.theme || '';
-  if (cost) note += ' (' + cost + ')';
+  // Без темы и без «/занятие» — только цена + краткое описание
+  let note = '';
+  if (slot.cost) note = slot.cost + 'р';
   if (slot.description) {
     const desc = slot.description.replace(/\s+/g, ' ').trim();
     const remain = 250 - note.length - 3;
-    if (remain > 30) note += ' — ' + desc.substring(0, remain) + (desc.length > remain ? '…' : '');
+    if (remain > 30) note += (note ? ' — ' : '') + desc.substring(0, remain) + (desc.length > remain ? '…' : '');
   }
   if (note.length > 255) note = note.substring(0, 252) + '…';
   return note;
@@ -4022,18 +4022,27 @@ function buildDefaultCrmNote(slot) {
 async function aiShrinkCrmNote(weekId, lIdx, sIdx) {
   const w = findWeek(weekId); if (!w) return;
   const slot = w.locations[lIdx].slots[sIdx];
-  if (!slot.description) { toast('У слота нет описания', 'error'); return; }
+  if (!slot.description) { toast('Сначала заполни «Программа интенсива»', 'error'); return; }
 
   const ta = document.getElementById('crm-note');
   if (!ta) return;
+
+  // Считаем бюджет: 255 минус цена и разделители (без темы и «/занятие»)
+  const cost = slot.cost ? (slot.cost + 'р') : '';
+  const prefix = cost ? cost + ' — ' : '';
+  // Берём 250 для запаса
+  const budget = Math.max(80, 250 - prefix.length);
+
   const oldVal = ta.value;
   ta.disabled = true;
   ta.value = 'ИИ сжимает описание…';
 
   try {
-    const prompt = `Сожми описание интенсива до 200 символов максимум. Сохрани суть: для кого и что получит ребёнок к концу. Без воды, без "за неделю", без перечисления глаголами. Стиль — ёмкий, без эмоджи. Только сам текст без преамбул.
+    const prompt = `Сожми описание интенсива до ${budget} символов МАКСИМУМ (не больше! строго). Сохрани суть: для кого и что получит ребёнок к концу. Без воды, без "за неделю", без перечисления через "научится...". Ёмко, по делу, без эмодзи и кавычек. Возвращай только текст без преамбул, пояснений и точки в конце.
 
-Исходное описание:
+Возраст: ${slot.age || state.ages || '?'}
+
+Программа:
 ${slot.description}`;
 
     const r = await fetch(LIBRARY_URL, {
@@ -4044,14 +4053,22 @@ ${slot.description}`;
     const data = await r.json();
     if (!data.ok) throw new Error(data.error || 'Claude error');
 
-    const shrunk = String(data.text || '').trim();
-    const cost = slot.cost ? (' (' + slot.cost + 'р/занятие)') : '';
-    let note = (slot.theme || '') + cost + ' — ' + shrunk;
+    let shrunk = String(data.text || '').trim();
+    // Уберём возможные кавычки/преамбулу/точку в конце
+    shrunk = shrunk.replace(/^["«»]\s*|\s*["«»]$/g, '').replace(/\.$/, '').trim();
+    // Если ИИ всё-таки выдал больше — обрезаем по слову
+    if (shrunk.length > budget) {
+      const cut = shrunk.substring(0, budget);
+      const lastSpace = cut.lastIndexOf(' ');
+      shrunk = (lastSpace > budget * 0.7 ? cut.substring(0, lastSpace) : cut) + '…';
+    }
+
+    let note = prefix + shrunk;
     if (note.length > 255) note = note.substring(0, 252) + '…';
 
     ta.value = note;
     document.getElementById('crm-note-count').textContent = note.length;
-    toast('✓ Сжато', 'success');
+    toast('✓ Сжато (' + note.length + ' символов)', 'success');
   } catch(e) {
     ta.value = oldVal;
     toast('Ошибка ИИ: ' + e.message, 'error');
