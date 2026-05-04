@@ -424,18 +424,27 @@
     cursor: text;
     transition: background 0.2s, border-color 0.2s;
   }
-  /* Заполненные слоты — раскладка с педагогом под темой (2 строки) */
+  /* Заполненные слоты — раскладка с педагогом под темой (2 строки, или 3 если возраст) */
   .slot.filled {
     grid-template-columns: 84px 1fr 50px 30px;
     grid-template-areas:
       "time theme cost actions"
-      "time teacher cost actions";
+      "time teacher cost actions"
+      "time age cost actions";
     column-gap: 6px;
     row-gap: 0;
   }
   .slot.filled .time { grid-area: time; align-self: center; }
   .slot.filled .theme-wrap { grid-area: theme; align-self: center; }
   .slot.filled .teacher { grid-area: teacher; font-size: 10px; font-style: italic; opacity: 0.75; padding: 0; }
+  .slot.filled .slot-age {
+    grid-area: age;
+    font-family: Inter, sans-serif;
+    font-size: 9.5px;
+    color: rgba(42,42,40,0.5);
+    padding: 1px 0 0;
+    line-height: 1.2;
+  }
   .slot.filled .cost-badge { grid-area: cost; align-self: center; }
   .slot.filled .slot-actions { grid-area: actions; }
 
@@ -1537,6 +1546,7 @@ function renderSlot(weekId, wIdx, lIdx, slot, sIdx) {
       </span>
       <input class="teacher" value="${escapeHtml(slot.teacher)}" placeholder="педагог"
         onchange="setSlotField('${weekId}',${lIdx},${sIdx},'teacher',this.value)" style="grid-column:auto">
+      ${slot.age ? `<span class="slot-age" title="возраст детей">${escapeHtml(slot.age)}</span>` : ''}
       <span class="cost-badge" contenteditable="true" title="стоимость, р"
         onblur="setSlotCost('${weekId}',${lIdx},${sIdx},this.textContent)"
         onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
