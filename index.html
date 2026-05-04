@@ -2281,6 +2281,9 @@ async function saveSlotToLibrary(weekId, lIdx, sIdx) {
   const direction = document.getElementById('sm-direction').value.trim();
   const cost = document.getElementById('sm-cost').value.trim();
   const description = document.getElementById('sm-desc').value.trim();
+  // Краткое описание для родителей (новое поле)
+  const descPublicEl = document.getElementById('sm-desc-public');
+  const descriptionPublic = descPublicEl ? descPublicEl.value.trim() : '';
   const time = document.getElementById('sm-time').value.trim();
   // Возраст — приоритет sm-age, fallback state.ages
   const ageEl = document.getElementById('sm-age');
@@ -2306,6 +2309,7 @@ async function saveSlotToLibrary(weekId, lIdx, sIdx) {
     format: 'интенсив',
     examples: '',
     description: description || '',
+    descriptionPublic: descriptionPublic || '',
     alfaTeacherId: slot.alfaTeacherId || '',
     alfaSubjectId: slot.alfaSubjectId || ''
   };
@@ -2461,6 +2465,7 @@ function applyLibToSlot(weekId, lIdx, sIdx, libIdx) {
   if (item.alfaSubjectId) slot.alfaSubjectId = item.alfaSubjectId;
   if (!slot.cost && state.defaultCost) slot.cost = String(state.defaultCost);
   if (!slot.description && item.description) slot.description = item.description;
+  if (!slot.descriptionPublic && item.descriptionPublic) slot.descriptionPublic = item.descriptionPublic;
   saveLocal();
   closeModal();
   render();
@@ -2550,8 +2555,11 @@ function openLibItemForm(idx) {
     <label>Примеры тем</label>
     <input type="text" id="lib-examples" value="${escapeHtml(it.examples || '')}" placeholder="через запятую">
 
-    <label>Описание *</label>
-    <textarea id="lib-description" placeholder="Что ребёнок узнает и сделает за неделю — для родителей и для ИИ" style="min-height:90px">${escapeHtml(it.description || '')}</textarea>
+    <label>Программа интенсива (полная) *</label>
+    <textarea id="lib-description" placeholder="Полная программа: что делают по дням, навыки, результат" style="min-height:90px">${escapeHtml(it.description || '')}</textarea>
+
+    <label>Описание для родителей <span style="color:rgba(42,42,40,0.5)">(краткое, попап)</span></label>
+    <textarea id="lib-description-public" placeholder="3–4 предложения простым языком, что ребёнок делает и получит" style="min-height:60px">${escapeHtml(it.descriptionPublic || '')}</textarea>
 
     <div style="margin-top:14px;padding:10px 12px;background:var(--paper-warm);border-radius:6px;border:1px solid rgba(42,42,40,0.1)">
       <div style="font-family:Inter,sans-serif;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:8px">Альфа CRM (опционально)</div>
@@ -2586,6 +2594,7 @@ async function saveLibItem(idx) {
     format: document.getElementById('lib-format').value.trim() || 'интенсив',
     examples: document.getElementById('lib-examples').value.trim(),
     description: document.getElementById('lib-description').value.trim(),
+    descriptionPublic: document.getElementById('lib-description-public').value.trim(),
     alfaTeacherId: document.getElementById('lib-alfa-teacher').value.trim(),
     alfaSubjectId: document.getElementById('lib-alfa-subject').value.trim()
   };
