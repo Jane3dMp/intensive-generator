@@ -947,14 +947,14 @@ const MONTHS_GEN = ['января','февраля','марта','апреля',
 const DEFAULT_MARKERS = ['Смешанная','МНО','Творческая','IT'];
 
 // Дефолтные слоты времени
-const DEFAULT_SLOTS = ['11-13', '14-16'];
+const DEFAULT_SLOTS = ['11:00 - 13:00', '14:00 - 16:00'];
 
 // ============================================================
 // SLOT / WEEK / STATE — фабрики
 // ============================================================
 function makeSlot(opts={}) {
   return {
-    time: opts.time || '11-13',
+    time: opts.time || '11:00 - 13:00',
     theme: opts.theme || '',
     teacher: opts.teacher || '',
     cost: opts.cost || '',
@@ -972,8 +972,8 @@ function makeLocationData() {
     dateRange: '',         // "1 - 5 июня"
     multiDayLabel: '',     // "4 дня" / "5 дней" — банер сверху
     slots: [
-      makeSlot({ time: '11-13' }),
-      makeSlot({ time: '14-16' })
+      makeSlot({ time: '11:00 - 13:00' }),
+      makeSlot({ time: '14:00 - 16:00' })
     ]
   };
 }
@@ -1502,7 +1502,7 @@ function renderSlot(weekId, wIdx, lIdx, slot, sIdx) {
     return `
       <div class="${cls}" data-slot="${weekId}-${lIdx}-${sIdx}"
            onclick="if(event.target===this||event.target.classList.contains('time-stub'))openSlotPicker('${weekId}',${lIdx},${sIdx})">
-        <input class="time" value="${escapeHtml(slot.time)}" placeholder="11-13"
+        <input class="time" value="${escapeHtml(slot.time)}" placeholder="11:00 - 13:00"
           onchange="setSlotField('${weekId}',${lIdx},${sIdx},'time',this.value)" title="время"
           onclick="event.stopPropagation()">
         <span class="time-stub" style="grid-column: span 3; color: rgba(21,22,23,0.4); font-family: Inter, sans-serif; font-size: 12px; padding: 2px 0; cursor: pointer;">+ выбрать тему…</span>
@@ -1519,7 +1519,7 @@ function renderSlot(weekId, wIdx, lIdx, slot, sIdx) {
   return `
     <div class="${cls}" data-slot="${weekId}-${lIdx}-${sIdx}">
       <span class="status-dot ${status}" title="${status==='approved'?'утверждено':status==='reserve'?'в резерве':'черновик'}"></span>
-      <input class="time" value="${escapeHtml(slot.time)}" placeholder="11-13"
+      <input class="time" value="${escapeHtml(slot.time)}" placeholder="11:00 - 13:00"
         onchange="setSlotField('${weekId}',${lIdx},${sIdx},'time',this.value)" title="время">
       <span class="theme-wrap">
         <input class="theme" value="${escapeHtml(slot.theme)}" placeholder="тема занятия"
@@ -1636,6 +1636,20 @@ function setEditor(v) {
 
 function findWeek(id) { return state.weeks.find(w => w.id === id); }
 
+// «11-13», «11:00-13», «11.00-13.30», «11:00 - 13:00» → «11:00 - 13:00»
+function formatTimeRange(s) {
+  if (!s) return s;
+  const str = String(s).trim();
+  // Ищем 1-2 числа: начало (часы)[опц.минуты] - конец (часы)[опц.минуты]
+  const m = str.match(/^(\d{1,2})[:.]?(\d{2})?\s*[-–—]\s*(\d{1,2})[:.]?(\d{2})?$/);
+  if (!m) return str;  // не парсим — возвращаем как есть
+  const h1 = String(parseInt(m[1], 10)).padStart(2, '0');
+  const mm1 = m[2] ? m[2] : '00';
+  const h2 = String(parseInt(m[3], 10)).padStart(2, '0');
+  const mm2 = m[4] ? m[4] : '00';
+  return `${h1}:${mm1} - ${h2}:${mm2}`;
+}
+
 // Парсим время начала из строки времени слота: "14:00-16:00" → 14*60 = 840 минут от начала суток
 function parseSlotStartMinutes(timeStr) {
   if (!timeStr) return 9999;
@@ -1672,6 +1686,10 @@ function setSlotField(weekId, lIdx, sIdx, field, val) {
   const w = findWeek(weekId); if (!w) return;
   const slot = w.locations[lIdx].slots[sIdx];
   if (!slot) return;
+  // Автоформат времени: «11-13» / «11:00-13:00» / «11.00-13.30» → «11:00 - 13:00»
+  if (field === 'time' && val) {
+    val = formatTimeRange(val);
+  }
   slot[field] = val;
   saveLocal();
   // Если изменилось время — пересортировать ячейку и полный re-render
@@ -1707,12 +1725,13 @@ function showSlotProgram(weekId, lIdx, sIdx) {
   const dirClass = directionToClass(slot.direction);
   const dirLabel = slot.direction || '—';
   const cost = slot.cost ? slot.cost + 'р' : '—';
-  const hasDesc = !!(slot.description && slot.description.trim());
-
-  // Преобразуем переносы строк в <br>, чтобы программа сохраняла структуру
+  // Описание для родителей — приоритет, fallback на полную программу
+  const desc = (slot.descriptionPublic && slot.descriptionPublic.trim()) || slot.description || '';
+  const hasDesc = !!desc;
   const descHtml = hasDesc
-    ? escapeHtml(slot.description).replace(/\n/g, '<br>')
-    : '<em style="color:rgba(42,42,40,0.4)">Описание пока не добавлено. Используйте ✨ ИИ или впишите вручную через ⋯ меню.</em>';
+    ? escapeHtml(desc).replace(/\n/g, '<br>')
+    : '<em style="color:rgba(42,42,40,0.4)">Описание пока не добавлено. Используй «✨ ужать ИИ» или впиши вручную через ⋯ меню.</em>';
+  const ageLabel = slot.age || state.ages || '';
 
   openModal(`
     <h2 style="margin-bottom:4px">${escapeHtml(slot.theme || '—')}</h2>
@@ -1726,13 +1745,14 @@ function showSlotProgram(weekId, lIdx, sIdx) {
     <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-family:Inter,sans-serif;font-size:13px;margin-bottom:14px">
       <span style="color:rgba(42,42,40,0.55)">Педагог</span>
       <span>${escapeHtml(slot.teacher || '—')}</span>
-      ${locDet.groupSize ? `<span style="color:rgba(42,42,40,0.55)">Группа</span><span>${escapeHtml(locDet.groupSize)}</span>` : ''}
+      ${ageLabel ? `<span style="color:rgba(42,42,40,0.55)">Возраст</span><span>${escapeHtml(ageLabel)}</span>` : ''}
+      ${locDet.groupSize ? `<span style="color:rgba(42,42,40,0.55)">Кол-во детей в группе</span><span>${escapeHtml(locDet.groupSize)}</span>` : ''}
       <span style="color:rgba(42,42,40,0.55)">Стоимость</span>
       <span style="font-weight:500">${escapeHtml(cost)}</span>
     </div>
 
     <div style="border-top:1px solid rgba(42,42,40,0.1);padding-top:12px">
-      <div style="font-family:Inter,sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:8px">Программа интенсива</div>
+      <div style="font-family:Inter,sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:8px">Описание для родителей</div>
       <div style="font-family:Geologica,sans-serif;font-size:14px;line-height:1.55;color:var(--ink)">${descHtml}</div>
     </div>
 
@@ -1749,7 +1769,6 @@ function showSlotProgram(weekId, lIdx, sIdx) {
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">закрыть</button>
       <button class="btn btn-ghost" onclick="showMobilePreview('${weekId}',${lIdx},${sIdx})" title="как видит родитель на телефоне">📱 превью</button>
-      <button class="btn btn-ghost" onclick="aiExpandDescription('${weekId}',${lIdx},${sIdx})">✨ ${hasDesc ? 'переписать через ИИ' : 'сгенерировать'}</button>
       <button class="btn btn-primary" onclick="closeModal();openSlotMenu('${weekId}',${lIdx},${sIdx})">✏ редактировать</button>
     </div>
   `);
@@ -1765,11 +1784,13 @@ function showMobilePreview(weekId, lIdx, sIdx) {
   const dateRange = w.locations[lIdx].dateRange;
   const dirClass = directionToClass(slot.direction);
   const cost = slot.cost ? slot.cost + 'р' : '—';
-  const hasDesc = !!(slot.description && slot.description.trim());
-  const descHtml = hasDesc
-    ? escapeHtml(slot.description).replace(/\n/g, '<br>')
+  // Родителям показываем краткое описание (приоритет), fallback на программу
+  const desc = (slot.descriptionPublic && slot.descriptionPublic.trim()) || slot.description || '';
+  const descHtml = desc
+    ? escapeHtml(desc).replace(/\n/g, '<br>')
     : '<em style="color:rgba(42,42,40,0.4)">Программа уточняется</em>';
   const formUrl = slot.crmFormUrl || (slot.crmGroupId ? buildCrmLeadFormUrl(slot.crmGroupId) : '');
+  const ageLabel = slot.age || state.ages || '';
 
   openModal(`
     <div style="font-family:Inter,sans-serif;font-size:11px;color:rgba(42,42,40,0.55);text-align:center;margin-bottom:8px">
@@ -1784,11 +1805,12 @@ function showMobilePreview(weekId, lIdx, sIdx) {
       <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:12px;margin-bottom:14px">
         <span style="color:rgba(42,42,40,0.55)">Педагог</span><span>${escapeHtml(slot.teacher || '—')}</span>
         ${locAddr ? `<span style="color:rgba(42,42,40,0.55)">Адрес</span><span>${escapeHtml(locAddr)}</span>` : ''}
-        ${locDet.groupSize ? `<span style="color:rgba(42,42,40,0.55)">Группа</span><span>${escapeHtml(locDet.groupSize)}</span>` : ''}
+        ${ageLabel ? `<span style="color:rgba(42,42,40,0.55)">Возраст</span><span>${escapeHtml(ageLabel)}</span>` : ''}
+        ${locDet.groupSize ? `<span style="color:rgba(42,42,40,0.55)">Кол-во детей в группе</span><span>${escapeHtml(locDet.groupSize)}</span>` : ''}
         <span style="color:rgba(42,42,40,0.55)">Стоимость</span><span style="font-weight:500">${escapeHtml(cost)}</span>
       </div>
       <div style="border-top:1px solid rgba(42,42,40,0.1);padding-top:12px">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:8px">Программа интенсива</div>
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:8px">Описание для родителей</div>
         <div style="font-family:Geologica,sans-serif;font-size:13px;line-height:1.55;color:var(--ink)">${descHtml}</div>
       </div>
       ${renderBringWithYouBlock(state.bringWithYou)}
@@ -1936,9 +1958,9 @@ function addSlot(weekId, lIdx) {
   pushUndo();
   const w = findWeek(weekId); if (!w) return;
   const existingTimes = w.locations[lIdx].slots.map(s => s.time);
-  let newTime = '11-13';
-  if (existingTimes.length === 0) newTime = '11-13';
-  else if (!existingTimes.includes('14-16')) newTime = '14-16';
+  let newTime = '11:00 - 13:00';
+  if (existingTimes.length === 0) newTime = '11:00 - 13:00';
+  else if (!existingTimes.includes('14:00 - 16:00')) newTime = '14:00 - 16:00';
   else if (!existingTimes.includes('10:30-13')) newTime = '10:30-13';
   else newTime = '';
   w.locations[lIdx].slots.push(makeSlot({ time: newTime }));
@@ -2119,8 +2141,8 @@ function clearAllSlots() {
   state.weeks.forEach(w => {
     w.locations.forEach(loc => {
       loc.slots = [
-        makeSlot({ time: '11-13' }),
-        makeSlot({ time: '14-16' })
+        makeSlot({ time: '11:00 - 13:00' }),
+        makeSlot({ time: '14:00 - 16:00' })
       ];
       loc.multiDayLabel = '';
     });
@@ -2143,13 +2165,16 @@ function openSlotMenu(weekId, lIdx, sIdx) {
     <p>${escapeHtml(slot.time || '')} · ${escapeHtml(slot.theme || '—')}</p>
 
     <label>Время</label>
-    <input type="text" id="sm-time" value="${escapeHtml(slot.time)}">
+    <input type="text" id="sm-time" value="${escapeHtml(slot.time)}" placeholder="11:00 - 13:00">
 
     <label>Тема</label>
     <input type="text" id="sm-theme" value="${escapeHtml(slot.theme)}">
 
     <label>Педагог</label>
     <input type="text" id="sm-teacher" value="${escapeHtml(slot.teacher)}">
+
+    <label>Возраст детей <span style="color:rgba(42,42,40,0.5)">(например, 9–14 лет)</span></label>
+    <input type="text" id="sm-age" value="${escapeHtml(slot.age || '')}" placeholder="9–14 лет">
 
     <label>Направление (определяет цвет)</label>
     <select id="sm-direction">
@@ -2168,12 +2193,23 @@ function openSlotMenu(weekId, lIdx, sIdx) {
     <label>Стоимость, р</label>
     <input type="number" id="sm-cost" value="${escapeHtml(slot.cost || '')}" placeholder="${state.defaultCost}">
 
-    <label>Описание / комментарий</label>
-    <textarea id="sm-desc" placeholder="Что именно ребёнок делает (для родителей и педагога)">${escapeHtml(slot.description || '')}</textarea>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-top:14px">
+      <label style="margin:0">Описание для родителей <span style="color:rgba(42,42,40,0.5)">(краткое, попап)</span></label>
+      <button class="btn btn-ghost btn-sm" onclick="aiRewriteShortDescription('${weekId}',${lIdx},${sIdx})" type="button" style="padding:2px 8px;font-size:11px">✨ ужать ИИ</button>
+    </div>
+    <textarea id="sm-desc-public" placeholder="Что ребёнок делает и что получит (3–5 строк)">${escapeHtml(slot.descriptionPublic || '')}</textarea>
+
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-top:8px">
+      <label style="margin:0">Программа интенсива <span style="color:rgba(42,42,40,0.5)">(полная, для маркетинга)</span></label>
+      <button class="btn btn-ghost btn-sm" onclick="aiExpandDescription('${weekId}',${lIdx},${sIdx})" type="button" style="padding:2px 8px;font-size:11px">✨ ИИ: расширить</button>
+    </div>
+    <textarea id="sm-desc" placeholder="Полная программа: дни, темы, навыки, результат">${escapeHtml(slot.description || '')}</textarea>
+
+    <label style="margin-top:8px">Комментарий маркетологу <span style="color:rgba(42,42,40,0.5)">(заметки только в админке и promo)</span></label>
+    <textarea id="sm-marketing" placeholder="Что выделить, акценты для рекламы, особенности группы">${escapeHtml(slot.marketingComment || '')}</textarea>
 
     <div style="display:flex;gap:6px;margin-top:14px;flex-wrap:wrap">
       <button class="btn btn-ghost btn-sm" onclick="aiSuggestForSlot('${weekId}',${lIdx},${sIdx})">💡 ИИ: подобрать тему</button>
-      <button class="btn btn-ghost btn-sm" onclick="aiExpandDescription('${weekId}',${lIdx},${sIdx})">✨ ИИ: расширить описание</button>
       <button class="btn btn-ghost btn-sm" onclick="openLibForSlot('${weekId}',${lIdx},${sIdx})">📚 из библиотеки</button>
       <button class="btn btn-ghost btn-sm" onclick="saveSlotToLibrary('${weekId}',${lIdx},${sIdx})">💾 в библиотеку</button>
       <button class="btn btn-ghost btn-sm" onclick="openCrmDispatchForm('${weekId}',${lIdx},${sIdx})">📤 в Альфа CRM ${slot.crmGroupId ? '✓' : ''}</button>
@@ -2192,13 +2228,17 @@ function saveSlotMenu(weekId, lIdx, sIdx) {
   pushUndo();
   const w = findWeek(weekId); if (!w) return;
   const slot = w.locations[lIdx].slots[sIdx];
-  slot.time = document.getElementById('sm-time').value.trim();
+  // время автоформатим
+  slot.time = formatTimeRange(document.getElementById('sm-time').value.trim());
   slot.theme = document.getElementById('sm-theme').value.trim();
   slot.teacher = document.getElementById('sm-teacher').value.trim();
+  slot.age = document.getElementById('sm-age').value.trim();
   slot.direction = document.getElementById('sm-direction').value.trim();
   slot.status = document.getElementById('sm-status').value || 'draft';
   slot.cost = document.getElementById('sm-cost').value.trim();
+  slot.descriptionPublic = document.getElementById('sm-desc-public').value.trim();
   slot.description = document.getElementById('sm-desc').value.trim();
+  slot.marketingComment = document.getElementById('sm-marketing').value.trim();
   autoSortSlots(w.locations[lIdx]);
   saveLocal();
   closeModal();
@@ -2398,6 +2438,7 @@ function applyLibToSlot(weekId, lIdx, sIdx, libIdx) {
   slot.teacher = item.teacher || '';
   slot.template = item.template || '';
   slot.direction = item.direction || '';
+  if (item.age && !slot.age) slot.age = item.age;
   if (item.alfaTeacherId) slot.alfaTeacherId = item.alfaTeacherId;
   if (item.alfaSubjectId) slot.alfaSubjectId = item.alfaSubjectId;
   if (!slot.cost && state.defaultCost) slot.cost = String(state.defaultCost);
@@ -2790,6 +2831,59 @@ function applyAiSuggestion(weekId, lIdx, sIdx, idx) {
   closeModal();
   render();
   toast('Тема подставлена', 'success');
+}
+
+// Сжимает «программу интенсива» (полную) до короткого описания для родителей —
+// 3-4 предложения простым языком, без воды.
+async function aiRewriteShortDescription(weekId, lIdx, sIdx) {
+  const w = findWeek(weekId); if (!w) return;
+  const slot = w.locations[lIdx].slots[sIdx];
+  const ta = document.getElementById('sm-desc-public');
+  const fullTa = document.getElementById('sm-desc');
+  if (!ta) return;
+  // Источник: полная программа из формы (если открыта) или slot.description
+  const source = (fullTa && fullTa.value.trim()) || slot.description || '';
+  if (!source) {
+    toast('Сначала заполни «Программу интенсива»', 'error');
+    return;
+  }
+  const oldVal = ta.value;
+  ta.disabled = true;
+  ta.value = 'ИИ переписывает…';
+  try {
+    const prompt = `Перепиши описание интенсива для родителей: коротко, простым языком, без штампов и воды. Не используй фразы «за неделю», «ребёнок научится», «к концу недели». Без эмодзи и заглавных букв в случайных местах.
+
+Объём: 3–4 предложения, до 350 символов.
+
+Структура:
+1. Чем занимаются на интенсиве (конкретные действия)
+2. Что получит ребёнок (полезный навык / результат)
+
+Возвращай только текст без преамбулы и кавычек.
+
+Тема: ${slot.theme || '—'}
+Возраст: ${slot.age || state.ages || '?'}
+
+Полная программа:
+${source}`;
+    const r = await fetch(LIBRARY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'claude', prompt: prompt })
+    });
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'Claude error');
+    let text = String(data.text || '').trim();
+    // Уберём возможные кавычки или префиксы
+    text = text.replace(/^["«»]\s*|\s*["«»]$/g, '').trim();
+    ta.value = text;
+    toast('✓ Готово', 'success');
+  } catch(e) {
+    ta.value = oldVal;
+    toast('Ошибка ИИ: ' + e.message, 'error');
+  } finally {
+    ta.disabled = false;
+  }
 }
 
 async function aiExpandDescription(weekId, lIdx, sIdx) {
