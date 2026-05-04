@@ -2260,6 +2260,11 @@ function parseTimeDuration(timeStr) {
 
 // Сохранить текущие поля карточки слота как тему в библиотеку
 async function saveSlotToLibrary(weekId, lIdx, sIdx) {
+  const w = findWeek(weekId);
+  if (!w) { toast('Неделя не найдена', 'error'); return; }
+  const slot = w.locations[lIdx].slots[sIdx];
+  if (!slot) { toast('Слот не найден', 'error'); return; }
+
   // Берём значения прямо из открытых полей (а не из state — пользователь мог что-то изменить)
   const theme = document.getElementById('sm-theme').value.trim();
   const teacher = document.getElementById('sm-teacher').value.trim();
@@ -2267,6 +2272,9 @@ async function saveSlotToLibrary(weekId, lIdx, sIdx) {
   const cost = document.getElementById('sm-cost').value.trim();
   const description = document.getElementById('sm-desc').value.trim();
   const time = document.getElementById('sm-time').value.trim();
+  // Возраст — приоритет sm-age, fallback state.ages
+  const ageEl = document.getElementById('sm-age');
+  const age = (ageEl && ageEl.value.trim()) || state.ages || '';
   const locName = state.locations[lIdx] || '';
 
   if (!theme) { toast('Укажите тему', 'error'); return; }
@@ -2283,13 +2291,13 @@ async function saveSlotToLibrary(weekId, lIdx, sIdx) {
     teacher,
     direction,
     location: locName,
-    age: state.ages || '6–11 лет',
+    age: age,
     duration,
     format: 'интенсив',
     examples: '',
     description: description || '',
-    alfaTeacherId: w.locations[lIdx].slots[sIdx].alfaTeacherId || '',
-    alfaSubjectId: w.locations[lIdx].slots[sIdx].alfaSubjectId || ''
+    alfaTeacherId: slot.alfaTeacherId || '',
+    alfaSubjectId: slot.alfaSubjectId || ''
   };
 
   // Ищем в библиотеке тему с тем же названием (нечувствительно к регистру)
