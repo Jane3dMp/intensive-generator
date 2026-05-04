@@ -747,9 +747,12 @@ function showSlotDetails(wIdx, lIdx, sIdx) {
   const locDet = (state.locationDetails && state.locationDetails[lIdx]) || {};
   const dirClass = directionToClass(s.direction);
   const cost = s.cost ? s.cost + 'р' : '—';
-  const descHtml = (s.description && s.description.trim())
-    ? escapeHtml(s.description).replace(/\n/g, '<br>')
+  // Краткое для родителей в приоритете, fallback на полную программу
+  const desc = (s.descriptionPublic && s.descriptionPublic.trim()) || s.description || '';
+  const descHtml = desc
+    ? escapeHtml(desc).replace(/\n/g, '<br>')
     : '<em style="color:rgba(42,42,40,0.4)">Программа уточняется</em>';
+  const ageLabel = s.age || state.ages || '';
 
   document.getElementById('modal-content').innerHTML = `
     <h2 style="margin-bottom:4px">${escapeHtml(s.theme || '—')}</h2>
@@ -764,13 +767,14 @@ function showSlotDetails(wIdx, lIdx, sIdx) {
       <span style="color:rgba(42,42,40,0.55)">Педагог</span>
       <span>${escapeHtml(s.teacher || '—')}</span>
       ${locAddr ? `<span style="color:rgba(42,42,40,0.55)">Адрес</span><span>${escapeHtml(locAddr)}</span>` : ''}
-      ${locDet.groupSize ? `<span style="color:rgba(42,42,40,0.55)">Группа</span><span>${escapeHtml(locDet.groupSize)}</span>` : ''}
+      ${ageLabel ? `<span style="color:rgba(42,42,40,0.55)">Возраст</span><span>${escapeHtml(ageLabel)}</span>` : ''}
+      ${locDet.groupSize ? `<span style="color:rgba(42,42,40,0.55)">Кол-во детей в группе</span><span>${escapeHtml(locDet.groupSize)}</span>` : ''}
       <span style="color:rgba(42,42,40,0.55)">Стоимость</span>
       <span style="font-weight:500">${escapeHtml(cost)}</span>
     </div>
 
     <div style="border-top:1px solid rgba(42,42,40,0.1);padding-top:12px">
-      <div style="font-family:Inter,sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:8px">Программа интенсива</div>
+      <div style="font-family:Inter,sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(42,42,40,0.55);margin-bottom:8px">Описание для родителей</div>
       <div style="font-family:Geologica,sans-serif;font-size:14px;line-height:1.55;color:var(--ink)">${descHtml}</div>
     </div>
 
