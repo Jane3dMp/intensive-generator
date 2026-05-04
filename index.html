@@ -2411,8 +2411,8 @@ function openLibForSlot(weekId, lIdx, sIdx) {
   }
   const items = LIBRARY.map((it, idx) => `
     <div class="lib-suggestion" onclick="applyLibToSlot('${weekId}',${lIdx},${sIdx},${idx})">
-      <div class="name">${escapeHtml(it.template || it.name || '—')}</div>
-      <div class="meta">${escapeHtml(it.teacher || '')}${it.direction ? ' · ' + escapeHtml(it.direction) : ''}${it.age ? ' · ' + escapeHtml(it.age) : ''}</div>
+      <div class="name">${escapeHtml(it.template || it.name || '—')}${it.age ? ` <span style="color:rgba(42,42,40,0.5);font-weight:400;font-size:0.85em">· ${escapeHtml(it.age)}</span>` : ''}</div>
+      <div class="meta">${escapeHtml(it.teacher || '')}${it.direction ? ' · ' + escapeHtml(it.direction) : ''}${it.descriptionPublic ? ' · <span style="color:#5a8a3a">✓ есть описание для родителей</span>' : ''}</div>
       ${it.description ? `<div class="meta" style="margin-top:4px">${escapeHtml(it.description.slice(0,140))}${it.description.length>140?'…':''}</div>` : ''}
     </div>
   `).join('');
@@ -2456,16 +2456,17 @@ function applyLibToSlot(weekId, lIdx, sIdx, libIdx) {
   const slot = w.locations[lIdx].slots[sIdx];
   const item = LIBRARY[libIdx];
   if (!item) return;
+  // Из библиотеки всегда перезаписываем — пользователь явно выбрал тему
   slot.theme = item.template || item.name || '';
   slot.teacher = item.teacher || '';
   slot.template = item.template || '';
   slot.direction = item.direction || '';
-  if (item.age && !slot.age) slot.age = item.age;
+  if (item.age) slot.age = item.age;
   if (item.alfaTeacherId) slot.alfaTeacherId = item.alfaTeacherId;
   if (item.alfaSubjectId) slot.alfaSubjectId = item.alfaSubjectId;
   if (!slot.cost && state.defaultCost) slot.cost = String(state.defaultCost);
-  if (!slot.description && item.description) slot.description = item.description;
-  if (!slot.descriptionPublic && item.descriptionPublic) slot.descriptionPublic = item.descriptionPublic;
+  if (item.description) slot.description = item.description;
+  if (item.descriptionPublic) slot.descriptionPublic = item.descriptionPublic;
   saveLocal();
   closeModal();
   render();
