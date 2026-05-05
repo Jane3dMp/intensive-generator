@@ -1,7 +1,7 @@
-<!-- Просмотр сетки интенсивов «Прознание + Coddy» -->
+<!-- Просмотр интенсивов «Прознание + Coddy» — маршрут лета -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Интенсивы — расписание</title>
+<title>Интенсивы — маршрут лета</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&family=Caveat:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -46,13 +46,16 @@
       radial-gradient(circle at 90% 95%, rgba(65,190,234,0.05) 0%, transparent 40%);
   }
 
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* === Шапка === */
   .header {
     border-bottom: 2px solid var(--ink);
     padding-bottom: 18px;
-    margin-bottom: 24px;
-    max-width: 1300px;
-    margin-left: auto;
-    margin-right: auto;
+    margin-bottom: 22px;
   }
   .eyebrow {
     font-family: Inter, sans-serif;
@@ -74,7 +77,7 @@
     font-style: normal;
     font-weight: 600;
     background: var(--yellow);
-    padding: 0 8px;
+    padding: 0 10px;
     border-radius: 4px;
   }
   .subtitle {
@@ -84,216 +87,404 @@
     margin-top: 8px;
   }
 
-  .container {
-    max-width: 1300px;
-    margin: 0 auto;
+  /* === Десктопный фильтр === */
+  .filters-bar {
+    background: rgba(255,255,255,0.7);
+    border: 1px solid rgba(42,42,40,0.12);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 22px;
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .filter-divider {
+    width: 1px;
+    height: 20px;
+    background: rgba(42,42,40,0.15);
+  }
+  .filter-label {
+    font-family: Inter, sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(42,42,40,0.5);
+    font-weight: 500;
+  }
+  .chip {
+    background: var(--white);
+    border: 1px solid rgba(42,42,40,0.15);
+    padding: 4px 11px;
+    border-radius: 12px;
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.12s;
+    font-weight: 400;
+    color: var(--ink);
+    user-select: none;
+  }
+  .chip:hover { background: var(--paper-deep); }
+  .chip.active {
+    background: var(--ink);
+    color: var(--yellow);
+    border-color: var(--ink);
+    font-weight: 500;
+  }
+  .chip.dir-chip { padding: 3px 11px; }
+  .chip.dir-chip.dir-it.active      { background: var(--dir-it-bg);       color: var(--ink); border: 1.5px solid var(--dir-it-border); font-weight: 500; }
+  .chip.dir-chip.dir-soft.active    { background: var(--dir-soft-bg);     color: var(--ink); border: 1.5px solid var(--dir-soft-border); font-weight: 500; }
+  .chip.dir-chip.dir-creative.active{ background: var(--dir-creative-bg); color: var(--ink); border: 1.5px solid var(--dir-creative-border); font-weight: 500; }
+  .chip.dir-chip.dir-mno.active     { background: var(--dir-mno-bg);      color: var(--ink); border: 1.5px solid var(--dir-mno-border); font-weight: 500; }
+  .chip.dir-chip.dir-mixed.active   { background: var(--dir-mixed-bg);    color: var(--ink); border: 1.5px solid var(--dir-mixed-border); font-weight: 500; }
+  .chip.dir-chip:not(.active) {
+    background: rgba(255,255,255,0.5);
+    color: rgba(42,42,40,0.55);
   }
 
-  .locations-row {
+  /* === Timeline (десктоп) === */
+  .timeline-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-bottom: 14px;
+    grid-template-columns: 130px 1fr;
+    gap: 28px;
   }
-  .location-name {
-    background: var(--yellow);
-    border: 1px solid var(--ink);
-    border-radius: 4px;
-    padding: 8px 14px;
-    text-align: center;
-    font-family: Geologica, sans-serif;
+  .month-block {
+    display: contents;
   }
-  .location-name .name-text {
+  .month-label {
+    font-family: Caveat, cursive;
     font-weight: 600;
-    font-size: 16px;
-    line-height: 1.1;
+    font-size: 38px;
+    line-height: 1;
+    color: var(--ink);
+    padding-top: 4px;
   }
-  .location-name .addr-text {
+  .month-label .month-count {
     display: block;
     font-family: Inter, sans-serif;
+    font-size: 10px;
+    color: rgba(42,42,40,0.5);
+    margin-top: 4px;
     font-weight: 400;
-    font-size: 11px;
-    font-style: italic;
-    color: rgba(42,42,40,0.7);
-    margin-top: 2px;
+    letter-spacing: 0.05em;
+  }
+  .month-stops {
+    position: relative;
+    padding-left: 22px;
+  }
+  .month-stops::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 8px;
+    bottom: 8px;
+    width: 1.5px;
+    background: rgba(42,42,40,0.18);
   }
 
-  .schedule {
+  .stop {
+    margin-bottom: 22px;
+    position: relative;
+  }
+  .stop:last-child { margin-bottom: 0; }
+  .stop::before {
+    content: '';
+    position: absolute;
+    left: -22px;
+    top: 6px;
+    width: 10px;
+    height: 10px;
     background: var(--white);
-    border: 1px solid var(--ink);
-    border-radius: 6px;
-    overflow: hidden;
-    box-shadow: 0 2px 12px var(--shadow);
+    border: 1.5px solid var(--ink);
+    border-radius: 50%;
+  }
+  .stop.first-of-month::before {
+    width: 14px;
+    height: 14px;
+    left: -24px;
+    top: 4px;
+    background: var(--yellow);
+    border-width: 2px;
   }
 
-  .month-header {
-    background: var(--orange-soft);
-    border-top: 2px solid var(--ink);
-    border-bottom: 1px solid var(--ink);
-    padding: 8px 14px;
-    font-family: Geologica, sans-serif;
-    font-weight: 600;
-    font-size: 14px;
-    text-align: center;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-  }
-  .month-header:first-child { border-top: none; }
-
-  .marker-header {
-    background: var(--paper-deep);
-    border-bottom: 1px solid var(--ink);
-    padding: 4px 14px;
-    height: 8px;
-  }
-  .marker-header.empty { display: none; }
-
-  .week-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    border-bottom: 1px solid rgba(21,22,23,0.15);
-  }
-  .week-row:last-child { border-bottom: none; }
-
-  .location-cell {
-    border-right: 1px solid rgba(21,22,23,0.15);
-    padding: 10px 12px;
+  .stop-head {
     display: flex;
-    flex-direction: column;
-    gap: 6px;
-    min-height: 80px;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+    gap: 12px;
+    flex-wrap: wrap;
   }
-  .location-cell:last-child { border-right: none; }
-  .location-cell.empty { background: rgba(0,0,0,0.015); }
-  .location-cell.empty.empty-row { background: transparent; min-height: 0; padding: 0; }
-
-  .week-date {
+  .stop-date {
     font-family: Geologica, sans-serif;
-    font-weight: 600;
+    font-weight: 500;
     font-size: 13px;
     color: var(--ink);
-    background: var(--green);
-    padding: 3px 8px;
-    border-radius: 3px;
-    display: inline-block;
-    width: fit-content;
   }
-  .week-date.dim {
-    background: transparent;
-    color: rgba(21,22,23,0.3);
-  }
-
-  .multi-day-banner {
-    background: var(--orange-soft);
-    border: 1px solid #e0b056;
-    padding: 4px 10px;
-    border-radius: 3px;
+  .stop-days {
     font-family: Inter, sans-serif;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 10px;
+    color: rgba(42,42,40,0.55);
+    background: var(--white);
+    padding: 1px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(42,42,40,0.1);
   }
 
-  .slot-line {
-    display: grid;
-    grid-template-columns: 84px 1fr 50px auto;
-    grid-template-areas:
-      "time theme cost btn"
-      "time teacher cost btn";
-    column-gap: 8px;
-    row-gap: 1px;
-    align-items: center;
-    padding: 6px 8px;
-    border-radius: 3px;
+  /* === Карточка интенсива === */
+  .slot-card {
     background: var(--dir-default-bg);
-    border: 1px solid var(--dir-default-border);
-    font-family: Inter, sans-serif;
-    font-size: 12px;
+    border-left: 3px solid var(--dir-default-border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.12s;
   }
-  .slot-line.dir-it      { background: var(--dir-it-bg);       border-color: var(--dir-it-border); }
-  .slot-line.dir-soft    { background: var(--dir-soft-bg);     border-color: var(--dir-soft-border); }
-  .slot-line.dir-creative{ background: var(--dir-creative-bg); border-color: var(--dir-creative-border); }
-  .slot-line.dir-mno     { background: var(--dir-mno-bg);      border-color: var(--dir-mno-border); }
-  .slot-line.dir-mixed   { background: var(--dir-mixed-bg);    border-color: var(--dir-mixed-border); }
-  .slot-line.empty { display: none; }
-  .slot-line .time {
-    grid-area: time;
-    align-self: center;
-    font-weight: 500;
-    font-size: 11px;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
+  .slot-card:last-child { margin-bottom: 0; }
+  .slot-card:hover {
+    transform: translateX(2px);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
   }
-  .slot-line .theme {
-    grid-area: theme;
+  .slot-card.dir-it       { background: var(--dir-it-bg);       border-left-color: var(--dir-it-border); }
+  .slot-card.dir-soft     { background: var(--dir-soft-bg);     border-left-color: var(--dir-soft-border); }
+  .slot-card.dir-creative { background: var(--dir-creative-bg); border-left-color: var(--dir-creative-border); }
+  .slot-card.dir-mno      { background: var(--dir-mno-bg);      border-left-color: var(--dir-mno-border); }
+  .slot-card.dir-mixed    { background: var(--dir-mixed-bg);    border-left-color: var(--dir-mixed-border); }
+
+  .slot-info { flex: 1; min-width: 0; }
+  .slot-theme {
+    font-family: Geologica, sans-serif;
+    font-size: 13px;
     font-weight: 500;
     line-height: 1.25;
-    /* Перенос по словам если очень длинная */
+    margin-bottom: 3px;
+    color: var(--ink);
     word-wrap: break-word;
-    overflow-wrap: break-word;
   }
-  .slot-line .teacher {
-    grid-area: teacher;
-    font-size: 10px;
-    color: rgba(42,42,40,0.7);
-    font-style: italic;
-    line-height: 1.2;
+  .slot-meta {
+    font-family: Inter, sans-serif;
+    font-size: 10.5px;
+    color: rgba(42,42,40,0.65);
+    line-height: 1.35;
   }
-  .slot-line .cost-badge {
-    grid-area: cost;
-    align-self: center;
+  .slot-meta .dot {
+    display: inline-block;
+    margin: 0 5px;
+    opacity: 0.55;
   }
-  .slot-line .program-btn {
-    grid-area: btn;
-    align-self: center;
+  .slot-side {
+    text-align: right;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-end;
   }
-
-  /* Бейдж «программа →» — контрастная кликабельная кнопка */
-  .program-btn {
-    background: var(--ink);
-    color: var(--paper-warm);
-    border: none;
-    border-radius: 12px;
-    padding: 4px 10px;
+  .slot-cost {
+    background: var(--white);
+    border: 1px solid rgba(42,42,40,0.12);
+    border-radius: 8px;
+    padding: 2px 9px;
     font-family: Inter, sans-serif;
     font-size: 11px;
     font-weight: 600;
-    cursor: pointer;
     white-space: nowrap;
-    transition: all 0.15s;
-    line-height: 1.2;
   }
-  .program-btn:hover {
-    background: var(--yellow-deep);
-    color: var(--ink);
-    transform: translateX(2px);
+  .slot-link {
+    font-family: Inter, sans-serif;
+    font-size: 10px;
+    color: rgba(42,42,40,0.6);
+    text-decoration: none;
   }
-  .program-btn .arrow {
-    display: inline-block;
-    margin-left: 2px;
-    transition: transform 0.15s;
-  }
-  .program-btn:hover .arrow {
-    transform: translateX(2px);
-  }
+  .slot-card:hover .slot-link { color: var(--ink); }
 
-  .slot-line .cost-badge {
-    background: var(--white);
-    border: 1px solid var(--ink);
-    border-radius: 10px;
-    padding: 1px 7px;
-    font-size: 11px;
+  /* === Мобильный экран фильтра (Шаг 1) === */
+  .mobile-only { display: none; }
+  .mobile-step {
+    display: none;
+  }
+  .mobile-step.active { display: block; }
+
+  .filter-screen-h {
+    font-family: Caveat, cursive;
     font-weight: 600;
-    text-align: center;
-    white-space: nowrap;
+    font-size: 32px;
+    line-height: 1.05;
+    margin-top: 4px;
+    margin-bottom: 4px;
   }
-
-  .empty-msg {
-    color: rgba(21,22,23,0.35);
+  .filter-screen-sub {
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+    color: rgba(42,42,40,0.6);
+    margin-bottom: 22px;
+  }
+  .filter-section { margin-bottom: 18px; }
+  .filter-section-label {
+    font-family: Inter, sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(42,42,40,0.55);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .loc-stack { display: flex; flex-direction: column; gap: 5px; }
+  .loc-stack-item {
+    background: var(--white);
+    border: 1px solid rgba(42,42,40,0.15);
+    padding: 11px 14px;
+    border-radius: 10px;
+    font-family: Geologica, sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.12s;
+    text-align: left;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .loc-stack-item .addr-text {
+    font-family: Inter, sans-serif;
     font-style: italic;
+    font-size: 11px;
+    opacity: 0.65;
+    font-weight: 400;
+  }
+  .loc-stack-item.active {
+    background: var(--ink);
+    color: var(--yellow);
+    border-color: var(--ink);
+    font-weight: 500;
+  }
+  .loc-stack-item.active .addr-text { color: var(--yellow); opacity: 0.75; }
+
+  .dir-chips-wrap {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .dir-chips-wrap .chip.dir-chip {
+    padding: 6px 14px;
     font-size: 12px;
   }
 
-  /* Модалка */
+  .show-btn {
+    width: 100%;
+    background: var(--ink);
+    color: var(--yellow);
+    border: none;
+    padding: 13px;
+    border-radius: 10px;
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    margin-top: 8px;
+  }
+  .show-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .show-btn:not(:disabled):hover { opacity: 0.92; }
+  .show-all-link {
+    display: block;
+    text-align: center;
+    margin-top: 12px;
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+    color: rgba(42,42,40,0.55);
+    text-decoration: underline;
+    cursor: pointer;
+    background: none;
+    border: none;
+    width: 100%;
+    padding: 4px;
+  }
+
+  /* === Мобильный экран маршрута (Шаг 2) === */
+  .step-2-head {
+    margin-bottom: 18px;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+    color: rgba(42,42,40,0.6);
+    text-decoration: none;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    margin-bottom: 6px;
+  }
+  .back-link .arrow { font-size: 14px; }
+  .step-2-title {
+    font-family: Caveat, cursive;
+    font-weight: 600;
+    font-size: 28px;
+    line-height: 1.1;
+    margin-bottom: 2px;
+  }
+  .step-2-summary {
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    color: rgba(42,42,40,0.55);
+  }
+
+  /* === Пустое состояние === */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    font-family: Inter, sans-serif;
+    color: rgba(42,42,40,0.55);
+  }
+  .empty-state .big {
+    font-family: Caveat, cursive;
+    font-size: 28px;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .empty-state .small {
+    font-size: 12px;
+  }
+
+  /* === Загрузка === */
+  .loading {
+    text-align: center;
+    padding: 60px 20px;
+    color: rgba(21,22,23,0.5);
+  }
+  .loader {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(21,22,23,0.2);
+    border-top-color: var(--ink);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* === Модалка (как было) === */
   .modal-overlay {
     position: fixed; inset: 0;
     background: rgba(21,22,23,0.5);
@@ -311,7 +502,7 @@
     padding: 24px;
     max-width: 500px;
     width: 100%;
-    max-height: 80vh;
+    max-height: 85vh;
     overflow-y: auto;
     box-shadow: 0 8px 32px rgba(0,0,0,0.25);
   }
@@ -319,18 +510,7 @@
     font-family: Geologica, sans-serif;
     font-size: 20px;
     margin-bottom: 8px;
-  }
-  .modal .meta {
-    font-family: Inter, sans-serif;
-    font-size: 12px;
-    color: rgba(21,22,23,0.6);
-    margin-bottom: 14px;
-  }
-  .modal p {
-    font-family: Geologica, sans-serif;
-    font-size: 14px;
-    line-height: 1.5;
-    color: rgba(21,22,23,0.85);
+    line-height: 1.2;
   }
   .modal-close {
     background: var(--yellow);
@@ -361,8 +541,7 @@
   .register-btn:hover { opacity: 0.85; }
 
   .footer {
-    max-width: 1300px;
-    margin: 24px auto 0;
+    margin-top: 28px;
     padding-top: 16px;
     border-top: 1px solid rgba(21,22,23,0.1);
     font-family: Inter, sans-serif;
@@ -371,104 +550,54 @@
     text-align: center;
   }
 
-  .loading {
-    text-align: center;
-    padding: 60px 20px;
-    color: rgba(21,22,23,0.5);
-  }
-  .loader {
-    display: inline-block;
-    width: 18px;
-    height: 18px;
-    border: 2px solid rgba(21,22,23,0.2);
-    border-top-color: var(--ink);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin-right: 8px;
-    vertical-align: middle;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* Мобильные вкладки локаций */
-  .mobile-loc-tabs {
-    display: none;
-    gap: 6px;
-    margin-bottom: 12px;
-    background: var(--paper-deep);
-    border-radius: 6px;
-    padding: 4px;
-    max-width: 1300px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  .mobile-loc-tab {
-    flex: 1;
-    padding: 7px 4px;
-    background: transparent;
-    border: none;
-    border-radius: 4px;
-    font-family: Geologica, sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    color: rgba(42,42,40,0.6);
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-    text-align: center;
-    line-height: 1.2;
-  }
-  .mobile-loc-tab .addr-text {
-    display: block;
-    font-family: Inter, sans-serif;
-    font-weight: 400;
-    font-size: 10px;
-    font-style: italic;
-    margin-top: 1px;
-    opacity: 0.85;
-  }
-  .mobile-loc-tab.active {
-    background: var(--yellow);
-    color: var(--ink);
-    font-weight: 600;
-  }
-
+  /* === Адаптив === */
   @media (max-width: 900px) {
-    body { padding: 12px; }
-    .week-row { grid-template-columns: 1fr; }
-    .location-cell { border-right: none; border-bottom: 1px solid rgba(21,22,23,0.1); }
-    .locations-row { display: none; }
-    .mobile-loc-tabs { display: flex; }
-    .slot-line {
-      grid-template-columns: 72px 1fr 40px;
-      grid-template-areas:
-        "time theme cost"
-        "time teacher cost"
-        "btn btn btn";
-      column-gap: 8px;
-      row-gap: 2px;
-      padding: 6px 8px;
-      font-size: 11px;
-    }
-    .slot-line .program-btn {
-      justify-self: stretch;
-      text-align: center;
-      padding: 7px;
-      margin-top: 4px;
-    }
+    body { padding: 14px; }
+    h1 { font-size: 28px; }
+    .header { padding-bottom: 14px; margin-bottom: 16px; }
 
-    body.mobile-loc-0 .location-cell[data-loc-idx="1"],
-    body.mobile-loc-0 .location-cell[data-loc-idx="2"] { display: none; }
-    body.mobile-loc-1 .location-cell[data-loc-idx="0"],
-    body.mobile-loc-1 .location-cell[data-loc-idx="2"] { display: none; }
-    body.mobile-loc-2 .location-cell[data-loc-idx="0"],
-    body.mobile-loc-2 .location-cell[data-loc-idx="1"] { display: none; }
+    /* Скрываем десктопный вид и фильтр-бар */
+    .desktop-only { display: none !important; }
+    .mobile-only { display: block; }
 
-    body.mobile-loc-0 .location-cell[data-loc-idx="0"].empty-row,
-    body.mobile-loc-1 .location-cell[data-loc-idx="1"].empty-row,
-    body.mobile-loc-2 .location-cell[data-loc-idx="2"].empty-row { display: none; }
+    /* Timeline сжимается */
+    .timeline-grid {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+    .month-label {
+      font-size: 26px;
+      padding-top: 14px;
+      margin-bottom: 6px;
+    }
+    .month-label .month-count { display: none; }
+    .month-stops {
+      padding-left: 18px;
+    }
+    .month-stops::before { left: 5px; }
+    .stop::before {
+      left: -18px;
+      width: 8px;
+      height: 8px;
+    }
+    .stop.first-of-month::before {
+      width: 11px;
+      height: 11px;
+      left: -19px;
+    }
+    .slot-card {
+      padding: 9px 10px;
+      gap: 8px;
+    }
+    .slot-theme { font-size: 12.5px; }
+    .slot-meta { font-size: 10px; }
+    .slot-cost { font-size: 10.5px; padding: 2px 7px; }
+    .slot-link { display: none; } /* на мобиле клик по всей карточке */
   }
 </style>
 
 <div class="container">
+
   <div class="header">
     <div class="eyebrow">Прознание + Coddy · интенсивы</div>
     <h1 id="h-title">—</h1>
@@ -490,10 +619,22 @@
 
 <script>
 // URL Apps Script — должен совпадать с index.html
-const LIBRARY_URL = 'https://script.google.com/macros/s/AKfycbyif_lfxp1hPVTt-AtSUM7GWm4ogBSBm5Z8rG3-Q9W0j_YUhC1zWZZSUz857L1weNmB/exec';
+const LIBRARY_URL = 'https://script.google.com/macros/s/AKfycbzbsD_4-SLX2sdd8rhhJAwWYA5UJtaRZ42uwaI1Q1BgD67tHvMitclU5wSnqkn94t2F/exec';
 const PROJECT_TYPE = 'intensive';
 
 let state = null;
+
+// === Состояние фильтров ===
+// locationIdx: -1 = все, 0..N-1 = конкретная
+// directions: Set из ключей ('it','soft','creative','mno','mixed','other')
+// '' (пустая строка) — направление не указано в данных, показываем по умолчанию вместе со всеми
+const filters = {
+  locationIdx: -1,
+  directions: new Set() // пустой = все
+};
+
+// На мобиле: 'step1' (фильтр) или 'step2' (маршрут)
+let mobileStep = 'step1';
 
 function escapeHtml(s) {
   return String(s == null ? '' : s)
@@ -511,7 +652,6 @@ async function loadPublication(id) {
   const data = await r.json();
   if (!data.ok || !data.version) throw new Error(data.error || 'Публикация не найдена');
   const obj = JSON.parse(data.version.stateJson);
-  // Сортируем слоты по времени, если ячейка не закреплена в ручном порядке
   if (obj && obj.weeks) {
     obj.weeks.forEach(w => {
       if (!w.locations) return;
@@ -535,20 +675,25 @@ function parseSlotStartMinutes(timeStr) {
 }
 
 function directionToClass(dir) {
+  const k = directionToKey(dir);
+  return k && k !== 'other' ? 'dir-' + k : '';
+}
+function directionToKey(dir) {
   if (!dir) return '';
   const d = String(dir).toLowerCase().trim();
-  if (d.includes('it') || d.includes('айт')) return 'dir-it';
-  if (d.includes('soft') || d.includes('софт') || d.includes('навык')) return 'dir-soft';
-  if (d.includes('твор') || d.includes('арт') || d.includes('art')) return 'dir-creative';
-  if (d.includes('мно') || d.includes('наук') || d.includes('научн')) return 'dir-mno';
-  if (d.includes('смеш') || d.includes('mixed')) return 'dir-mixed';
-  return '';
+  if (d.includes('it') || d.includes('айт')) return 'it';
+  if (d.includes('soft') || d.includes('софт') || d.includes('навык')) return 'soft';
+  if (d.includes('твор') || d.includes('арт') || d.includes('art')) return 'creative';
+  if (d.includes('мно') || d.includes('наук') || d.includes('научн')) return 'mno';
+  if (d.includes('смеш') || d.includes('mixed')) return 'mixed';
+  return 'other';
+}
+function directionLabel(key) {
+  return ({ it: 'IT', soft: 'soft', creative: 'творч', mno: 'МНО', mixed: 'смеш' })[key] || key;
 }
 
-// Считает количество дней по строке диапазона: "1 - 5 июня" → "5 дней", "29 - 3 июля" → "5 дней"
 function calcDaysLabel(dateRange) {
   if (!dateRange) return '';
-  // Извлекаем все числа подряд
   const nums = String(dateRange).match(/\d+/g);
   if (!nums || nums.length < 2) return '';
   const a = parseInt(nums[0]);
@@ -556,15 +701,11 @@ function calcDaysLabel(dateRange) {
   if (isNaN(a) || isNaN(b)) return '';
   let days;
   if (b >= a) {
-    // Простой случай — оба в одном месяце: «1-5 июня»
     days = b - a + 1;
   } else {
-    // Переход между месяцами — «29 - 3 июля». Не зная стартового месяца, берём 30 дней
-    // (среднее число дней — для июня и июля даёт правильный счёт, для большинства других тоже)
     days = (30 - a + 1) + b;
   }
   if (days < 1 || days > 14) return '';
-  // Правильное склонение
   return days + ' ' + pluralizeDays(days);
 }
 
@@ -573,9 +714,12 @@ function pluralizeDays(n) {
   if ([2,3,4].includes(n % 10) && ![12,13,14].includes(n % 100)) return 'дня';
   return 'дней';
 }
+function pluralizeIntensive(n) {
+  if (n % 10 === 1 && n % 100 !== 11) return 'интенсив';
+  if ([2,3,4].includes(n % 10) && ![12,13,14].includes(n % 100)) return 'интенсива';
+  return 'интенсивов';
+}
 
-// В родительской публикации показываем только утверждённые слоты с темой.
-// Старые слоты без поля status считаем утверждёнными, чтобы не потерять прошлые публикации.
 function slotIsVisible(s) {
   if (!s) return false;
   if (!s.theme && !s.teacher) return false;
@@ -583,13 +727,42 @@ function slotIsVisible(s) {
   return status === 'approved';
 }
 
-async function init() {
-  // Восстановим выбранную локацию для мобильной версии
-  try {
-    const saved = parseInt(localStorage.getItem('intensive_view_mobile_loc'));
-    if (!isNaN(saved) && saved >= 0 && saved < 3) _mobileLocIdx = saved;
-  } catch(e) {}
+// Соберём все слоты в плоский массив для удобной фильтрации/группировки
+function flattenSlots() {
+  const out = [];
+  if (!state || !state.weeks) return out;
+  state.weeks.forEach((w, wIdx) => {
+    if (!w.locations) return;
+    w.locations.forEach((loc, lIdx) => {
+      if (!loc || !loc.slots) return;
+      loc.slots.forEach((s, sIdx) => {
+        if (!slotIsVisible(s)) return;
+        out.push({
+          slot: s,
+          wIdx, lIdx, sIdx,
+          month: w.month || '',
+          dateRange: loc.dateRange || '',
+          multiDayLabel: loc.multiDayLabel || calcDaysLabel(loc.dateRange) || '',
+          dirKey: directionToKey(s.direction)
+        });
+      });
+    });
+  });
+  return out;
+}
 
+function passesFilter(item) {
+  if (filters.locationIdx >= 0 && item.lIdx !== filters.locationIdx) return false;
+  if (filters.directions.size > 0) {
+    // Слот без направления — показываем только если фильтр не активен
+    if (!item.dirKey || item.dirKey === 'other') return false;
+    if (!filters.directions.has(item.dirKey)) return false;
+  }
+  return true;
+}
+
+// === Инициализация ===
+async function init() {
   const id = getId();
   if (!id) {
     document.getElementById('content').innerHTML = `
@@ -612,132 +785,274 @@ async function init() {
   }
 }
 
+// === Главный рендер ===
 function render() {
-  document.getElementById('h-title').innerHTML = `<em>${escapeHtml(state.title || 'Интенсивы')}</em>`;
+  document.getElementById('h-title').innerHTML = `<em>${escapeHtml(state.title || 'Маршрут лета')}</em>`;
   let sub = '';
   if (state.ages) sub += state.ages;
   document.getElementById('h-subtitle').textContent = sub;
 
-  let html = `<div class="locations-row">`;
-  state.locations.forEach((loc, i) => {
-    const addr = (state.locationAddresses && state.locationAddresses[i]) || '';
-    html += `<div class="location-name">
-      <span class="name-text">${escapeHtml(loc)}</span>
-      ${addr ? `<span class="addr-text">${escapeHtml(addr)}</span>` : ''}
-    </div>`;
-  });
+  // Какие направления реально есть в данных
+  const allItems = flattenSlots();
+  const presentDirs = new Set();
+  allItems.forEach(it => { if (it.dirKey && it.dirKey !== 'other') presentDirs.add(it.dirKey); });
+  const dirOrder = ['it', 'soft', 'creative', 'mno', 'mixed'].filter(k => presentDirs.has(k));
+
+  let html = '';
+
+  // === Десктоп: фильтр-бар + timeline ===
+  html += `<div class="desktop-only">`;
+  html += renderFiltersBar(dirOrder);
+  html += `<div id="desktop-timeline">${renderTimeline(allItems)}</div>`;
   html += `</div>`;
 
-  // Мобильные вкладки
-  html += `<div class="mobile-loc-tabs">`;
-  state.locations.forEach((loc, i) => {
-    const addr = (state.locationAddresses && state.locationAddresses[i]) || '';
-    html += `<button class="mobile-loc-tab ${i === _mobileLocIdx ? 'active' : ''}"
-      onclick="setMobileLoc(${i})">
-      ${escapeHtml(loc)}
-      ${addr ? `<span class="addr-text">${escapeHtml(addr)}</span>` : ''}
-    </button>`;
-  });
-  html += `</div>`;
-
-  html += `<div class="schedule">`;
-  let lastMonth = null;
-  let lastMarker = null;
-  // Для определения видимости недели на мобиле — учитываем только выбранную локацию
-  const isMobile = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
-  const visibleLocIdxs = isMobile ? [_mobileLocIdx] : [0, 1, 2];
-
-  state.weeks.forEach((w, wIdx) => {
-    // Пропускаем неделю целиком, если ни в одной видимой локации нет тем
-    const weekHasContent = visibleLocIdxs.some(li =>
-      w.locations[li] && w.locations[li].slots && w.locations[li].slots.some(slotIsVisible)
-    );
-    if (!weekHasContent) return;
-
-    if (w.month !== lastMonth) {
-      html += `<div class="month-header">${escapeHtml(w.month || '—')}</div>`;
-      lastMonth = w.month;
-      lastMarker = null;
-    }
-    // Маркер показываем как тонкий серый разделитель без текста
-    const showMarker = w.marker && w.marker !== lastMarker;
-    if (showMarker) {
-      html += `<div class="marker-header">&nbsp;</div>`;
-      lastMarker = w.marker;
-    }
-    html += `<div class="week-row">`;
-    w.locations.forEach((loc, lIdx) => {
-      html += renderViewCell(w, wIdx, loc, lIdx);
-    });
-    html += `</div>`;
-  });
+  // === Мобильный: 2 экрана ===
+  html += `<div class="mobile-only">`;
+  html += `<div class="mobile-step ${mobileStep === 'step1' ? 'active' : ''}" id="mobile-step1">${renderMobileFilter(allItems, dirOrder)}</div>`;
+  html += `<div class="mobile-step ${mobileStep === 'step2' ? 'active' : ''}" id="mobile-step2">${renderMobileTimeline(allItems)}</div>`;
   html += `</div>`;
 
   document.getElementById('content').innerHTML = html;
-  applyMobileLocClass();
 }
 
-let _mobileLocIdx = 0;
-function setMobileLoc(idx) {
-  _mobileLocIdx = idx;
-  try { localStorage.setItem('intensive_view_mobile_loc', String(idx)); } catch(e) {}
-  // Полный re-render — чтобы пересчитать видимые недели и спрятать пустые маркеры
-  if (state) render();
-  else applyMobileLocClass();
-}
+// === Фильтр-бар (десктоп) ===
+function renderFiltersBar(dirOrder) {
+  let html = `<div class="filters-bar">`;
 
-function applyMobileLocClass() {
-  document.body.classList.remove('mobile-loc-0','mobile-loc-1','mobile-loc-2');
-  document.body.classList.add('mobile-loc-' + _mobileLocIdx);
-}
+  // Локация
+  html += `<div class="filter-group">`;
+  html += `<span class="filter-label">локация</span>`;
+  html += `<button class="chip ${filters.locationIdx === -1 ? 'active' : ''}" onclick="setLocFilter(-1)">все</button>`;
+  state.locations.forEach((loc, i) => {
+    html += `<button class="chip ${filters.locationIdx === i ? 'active' : ''}" onclick="setLocFilter(${i})">${escapeHtml(loc)}</button>`;
+  });
+  html += `</div>`;
 
-// При повороте экрана / ресайзе — тоже пересчитываем
-window.addEventListener('resize', () => {
-  if (state) {
-    clearTimeout(window._resizeTimer);
-    window._resizeTimer = setTimeout(() => render(), 200);
-  }
-});
-
-function renderViewCell(week, wIdx, loc, lIdx) {
-  const hasContent = loc.slots && loc.slots.some(slotIsVisible);
-  // Если в ячейке нет ни одной заполненной темы — рендерим пустой div (он держит сетку из 3 колонок)
-  if (!hasContent) {
-    return `<div class="location-cell empty empty-row" data-loc-idx="${lIdx}"></div>`;
-  }
-  let html = `<div class="location-cell" data-loc-idx="${lIdx}">`;
-  // Дата
-  if (loc.dateRange) {
-    html += `<div class="week-date">${escapeHtml(loc.dateRange)}</div>`;
-  }
-  // Многодневный банер: автоматически считаем дни из даты, если не задан вручную
-  const dayLabel = loc.multiDayLabel || calcDaysLabel(loc.dateRange);
-  if (dayLabel) {
-    html += `<div class="multi-day-banner">${escapeHtml(dayLabel)}</div>`;
-  }
-  // Слоты
-  if (hasContent) {
-    loc.slots.forEach((s, sIdx) => {
-      if (!slotIsVisible(s)) return;
-      const cost = s.cost ? s.cost + 'р' : '';
-      const dirClass = directionToClass(s.direction);
-      html += `
-        <div class="slot-line ${dirClass}">
-          <span class="time">${escapeHtml(s.time || '')}</span>
-          <span class="theme">${escapeHtml(s.theme || '')}</span>
-          <span class="teacher">${escapeHtml(s.teacher || '')}</span>
-          <span class="cost-badge">${escapeHtml(cost) || '—'}</span>
-          <button class="program-btn" onclick="showSlotDetails(${wIdx},${lIdx},${sIdx})">программа<span class="arrow">→</span></button>
-        </div>
-      `;
+  if (dirOrder.length) {
+    html += `<div class="filter-divider"></div>`;
+    html += `<div class="filter-group">`;
+    html += `<span class="filter-label">направление</span>`;
+    dirOrder.forEach(k => {
+      const active = filters.directions.has(k);
+      html += `<button class="chip dir-chip dir-${k} ${active ? 'active' : ''}" onclick="toggleDirFilter('${k}')">${directionLabel(k)}</button>`;
     });
-  } else if (!loc.dateRange) {
-    html += `<span class="empty-msg">—</span>`;
+    if (filters.directions.size > 0) {
+      html += `<button class="chip" style="opacity:0.6;font-size:10px" onclick="clearDirFilter()">сбросить</button>`;
+    }
+    html += `</div>`;
   }
+
   html += `</div>`;
   return html;
 }
 
+// === Timeline (общая для десктопа и шага 2 мобильного) ===
+function renderTimeline(allItems) {
+  const items = allItems.filter(passesFilter);
+  if (!items.length) {
+    return `
+      <div class="empty-state">
+        <div class="big">Ничего не нашлось</div>
+        <div class="small">Попробуй изменить фильтры — направление или локацию.</div>
+      </div>`;
+  }
+
+  // Группируем по месяцам, внутри по weekIdx (сохраняем порядок данных)
+  const byMonth = []; // [{month, weeks: [{wIdx, dateRange, days, items: []}]}]
+  const monthMap = new Map();
+  const weekMap = new Map(); // ключ: month + '||' + wIdx + '||' + dateRange (на случай разных дат в week)
+
+  items.forEach(it => {
+    if (!monthMap.has(it.month)) {
+      const m = { month: it.month, weeks: [] };
+      monthMap.set(it.month, m);
+      byMonth.push(m);
+    }
+    const monthObj = monthMap.get(it.month);
+    const wKey = it.month + '||' + it.wIdx + '||' + it.dateRange;
+    if (!weekMap.has(wKey)) {
+      const w = {
+        wIdx: it.wIdx,
+        dateRange: it.dateRange,
+        days: it.multiDayLabel,
+        items: []
+      };
+      weekMap.set(wKey, w);
+      monthObj.weeks.push(w);
+    }
+    weekMap.get(wKey).items.push(it);
+  });
+
+  let html = `<div class="timeline-grid">`;
+  byMonth.forEach(m => {
+    const totalInMonth = m.weeks.reduce((acc, w) => acc + w.items.length, 0);
+    html += `<div class="month-block">`;
+    html += `<div class="month-label">${escapeHtml(m.month || '—')}<span class="month-count">${totalInMonth} ${pluralizeIntensive(totalInMonth)}</span></div>`;
+    html += `<div class="month-stops">`;
+    m.weeks.forEach((w, wIdxInMonth) => {
+      html += `<div class="stop ${wIdxInMonth === 0 ? 'first-of-month' : ''}">`;
+      html += `<div class="stop-head">`;
+      html += `<div class="stop-date">${escapeHtml(w.dateRange || '—')}</div>`;
+      if (w.days) html += `<div class="stop-days">${escapeHtml(w.days)}</div>`;
+      html += `</div>`;
+      w.items.forEach(it => {
+        html += renderSlotCard(it);
+      });
+      html += `</div>`;
+    });
+    html += `</div></div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+function renderSlotCard(item) {
+  const s = item.slot;
+  const dirCls = directionToClass(s.direction);
+  const cost = s.cost ? s.cost + ' ₽' : '';
+  const teacher = s.teacher || '';
+  const time = s.time || '';
+  const locName = state.locations[item.lIdx] || '';
+
+  // Метаданные: время · педагог · локация (если фильтр по локации не активен)
+  const metaParts = [];
+  if (time) metaParts.push(escapeHtml(time));
+  if (teacher) metaParts.push(escapeHtml(teacher));
+  if (filters.locationIdx === -1 && locName) metaParts.push(escapeHtml(locName));
+  const metaHtml = metaParts.join('<span class="dot">·</span>');
+
+  return `
+    <div class="slot-card ${dirCls}" onclick="showSlotDetails(${item.wIdx},${item.lIdx},${item.sIdx})">
+      <div class="slot-info">
+        <div class="slot-theme">${escapeHtml(s.theme || '—')}</div>
+        <div class="slot-meta">${metaHtml}</div>
+      </div>
+      <div class="slot-side">
+        ${cost ? `<div class="slot-cost">${escapeHtml(cost)}</div>` : ''}
+        <span class="slot-link">программа →</span>
+      </div>
+    </div>
+  `;
+}
+
+// === Мобильный: Шаг 1 (фильтр) ===
+function renderMobileFilter(allItems, dirOrder) {
+  const matchingCount = allItems.filter(passesFilter).length;
+  const filtersActive = filters.locationIdx >= 0 || filters.directions.size > 0;
+
+  let html = '';
+  html += `<div class="filter-screen-h">кому ищем интенсив?</div>`;
+  html += `<div class="filter-screen-sub">соберём маршрут под ребёнка</div>`;
+
+  // Локация — стопка
+  html += `<div class="filter-section">`;
+  html += `<div class="filter-section-label">локация</div>`;
+  html += `<div class="loc-stack">`;
+  html += `<button class="loc-stack-item ${filters.locationIdx === -1 ? 'active' : ''}" onclick="setLocFilter(-1)">все локации</button>`;
+  state.locations.forEach((loc, i) => {
+    const addr = (state.locationAddresses && state.locationAddresses[i]) || '';
+    html += `<button class="loc-stack-item ${filters.locationIdx === i ? 'active' : ''}" onclick="setLocFilter(${i})">
+      <span>${escapeHtml(loc)}</span>
+      ${addr ? `<span class="addr-text">${escapeHtml(addr)}</span>` : ''}
+    </button>`;
+  });
+  html += `</div></div>`;
+
+  // Направление — chips
+  if (dirOrder.length) {
+    html += `<div class="filter-section">`;
+    html += `<div class="filter-section-label">направление</div>`;
+    html += `<div class="dir-chips-wrap">`;
+    dirOrder.forEach(k => {
+      const active = filters.directions.has(k);
+      html += `<button class="chip dir-chip dir-${k} ${active ? 'active' : ''}" onclick="toggleDirFilter('${k}')">
+        ${directionLabel(k)}${active ? ' ✓' : ''}
+      </button>`;
+    });
+    html += `</div></div>`;
+  }
+
+  // Кнопка показать
+  const btnLabel = filtersActive
+    ? `показать ${matchingCount} ${pluralizeIntensive(matchingCount)} →`
+    : `показать всё лето · ${matchingCount} ${pluralizeIntensive(matchingCount)} →`;
+  html += `<button class="show-btn" onclick="goToStep2()" ${matchingCount === 0 ? 'disabled' : ''}>${btnLabel}</button>`;
+
+  if (filtersActive) {
+    html += `<button class="show-all-link" onclick="resetFiltersAndGo()">или показать всё лето</button>`;
+  }
+
+  return html;
+}
+
+// === Мобильный: Шаг 2 (timeline) ===
+function renderMobileTimeline(allItems) {
+  const filtered = allItems.filter(passesFilter);
+  const filtersActive = filters.locationIdx >= 0 || filters.directions.size > 0;
+
+  // Сборка summary
+  const summaryParts = [];
+  if (filters.locationIdx >= 0) summaryParts.push(state.locations[filters.locationIdx]);
+  if (filters.directions.size > 0) {
+    summaryParts.push(Array.from(filters.directions).map(directionLabel).join(', '));
+  }
+  if (summaryParts.length === 0) summaryParts.push('всё лето');
+
+  let html = '';
+  html += `<div class="step-2-head">`;
+  html += `<button class="back-link" onclick="goToStep1()"><span class="arrow">←</span><span>${filtersActive ? 'изменить' : 'фильтр'}</span></button>`;
+  html += `<div class="step-2-title">${filtered.length} ${pluralizeIntensive(filtered.length)}</div>`;
+  html += `<div class="step-2-summary">${escapeHtml(summaryParts.join(' · '))}</div>`;
+  html += `</div>`;
+
+  html += renderTimeline(allItems);
+  return html;
+}
+
+// === Действия фильтров ===
+function setLocFilter(idx) {
+  filters.locationIdx = idx;
+  rerenderFilteredAreas();
+}
+function toggleDirFilter(key) {
+  if (filters.directions.has(key)) filters.directions.delete(key);
+  else filters.directions.add(key);
+  rerenderFilteredAreas();
+}
+function clearDirFilter() {
+  filters.directions.clear();
+  rerenderFilteredAreas();
+}
+function goToStep1() {
+  mobileStep = 'step1';
+  render();
+  window.scrollTo(0, 0);
+}
+function goToStep2() {
+  mobileStep = 'step2';
+  render();
+  window.scrollTo(0, 0);
+}
+function resetFiltersAndGo() {
+  filters.locationIdx = -1;
+  filters.directions.clear();
+  goToStep2();
+}
+
+// Перерисовка только фильтр-бара и timeline без полного render() —
+// чтобы не дёргать прокрутку и сохранить плавность
+function rerenderFilteredAreas() {
+  // На мобиле в step1 — перерисовываем весь шаг (счётчик + чипы)
+  const isMobile = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+  if (isMobile && mobileStep === 'step1') {
+    render();
+    return;
+  }
+  // Иначе перерисовываем целиком — счётчик в кнопке надо обновить
+  render();
+}
+
+// === Модалка (как раньше) ===
 function showSlotDetails(wIdx, lIdx, sIdx) {
   const w = state.weeks[wIdx]; if (!w) return;
   const loc = w.locations[lIdx]; if (!loc) return;
@@ -746,8 +1061,7 @@ function showSlotDetails(wIdx, lIdx, sIdx) {
   const locAddr = (state.locationAddresses && state.locationAddresses[lIdx]) || '';
   const locDet = (state.locationDetails && state.locationDetails[lIdx]) || {};
   const dirClass = directionToClass(s.direction);
-  const cost = s.cost ? s.cost + 'р' : '—';
-  // Краткое для родителей в приоритете, fallback на полную программу
+  const cost = s.cost ? s.cost + ' ₽' : '—';
   const desc = (s.descriptionPublic && s.descriptionPublic.trim()) || s.description || '';
   const descHtml = desc
     ? escapeHtml(desc).replace(/\n/g, '<br>')
@@ -755,9 +1069,9 @@ function showSlotDetails(wIdx, lIdx, sIdx) {
   const ageLabel = s.age || state.ages || '';
 
   document.getElementById('modal-content').innerHTML = `
-    <h2 style="margin-bottom:4px">${escapeHtml(s.theme || '—')}</h2>
+    <h2>${escapeHtml(s.theme || '—')}</h2>
     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
-      ${s.direction ? `<span class="dir-chip ${dirClass}" style="display:inline-block;padding:2px 8px;border-radius:10px;font-family:Inter,sans-serif;font-size:10px;font-weight:500">${escapeHtml(s.direction)}</span>` : ''}
+      ${s.direction ? `<span class="chip dir-chip ${dirClass} active" style="cursor:default;font-weight:500;font-size:10px">${escapeHtml(s.direction)}</span>` : ''}
       <span style="font-family:Inter,sans-serif;font-size:12px;color:rgba(42,42,40,0.6)">
         ${escapeHtml(locName)}${locAddr ? ' (' + escapeHtml(locAddr) + ')' : ''} · ${escapeHtml(loc.dateRange || '')} · ${escapeHtml(s.time || '')}
       </span>
@@ -855,6 +1169,13 @@ function closeModal() {
 
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeModal();
+});
+
+window.addEventListener('resize', () => {
+  if (state) {
+    clearTimeout(window._resizeTimer);
+    window._resizeTimer = setTimeout(() => render(), 200);
+  }
 });
 
 init();
